@@ -285,7 +285,8 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
         exec_output_gen = kathara_manager.exec(machine_name=device_name,
                                                command=f"bash -c 'ping -q -n -c 1 {destination}; echo $?'",
                                                lab_hash=lab.hash)
-    except MachineNotFoundError as e:
+    except Exception as e:
+        logger.log_red(str(e))
         return test_text, False, str(e)
     output = get_output(exec_output_gen)
     if output.splitlines()[-1] == '0':

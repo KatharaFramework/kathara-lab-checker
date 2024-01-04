@@ -1,7 +1,9 @@
+import argparse
 import json
 import os
 import shutil
 import signal
+import sys
 import time
 from typing import Optional
 
@@ -24,12 +26,26 @@ def handler(signum, frame):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='A tool for automatically check Kathará network scenarios',
+        add_help=True
+    )
+
+    parser.add_argument(
+        '--config', '-c',
+        required=True,
+        help='The path to the configuration file for the tests',
+    )
+
+    args = parser.parse_args(sys.argv[1:])
+
+    print(args)
     signal.signal(signal.SIGINT, handler)
     Setting.get_instance().load_from_dict({"image": "kathara/frr"})
     manager: Kathara = Kathara.get_instance()
 
     logger.log("Reading Test configuration...")
-    with open("configuration.json", "r") as json_conf:
+    with open(args.config, "r") as json_conf:
         configuration = json.load(json_conf)
 
     labs_path = os.path.abspath(configuration['labs_path'])
@@ -146,7 +162,7 @@ if __name__ == '__main__':
 
         all_path = os.path.join(test_results_path, "all_tests.txt")
         with open(all_path, "w") as result_file:
-            result_file.write("############ Ran Tests  ############\n")
+            result_file.write("############ All Tests  ############\n")
             for idx, test in enumerate(collected_tests):
                 result_file.write(f"################# {idx} #################\n")
                 result_file.write(f"Test: {test[0]}\nResult: {test[1]}\nReason: {test[2]}\n")
