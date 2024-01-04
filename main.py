@@ -35,8 +35,8 @@ if __name__ == '__main__':
     labs_path = os.path.abspath(configuration['labs_path'])
     logger.log(f"Parsing network scenarios in: {labs_path}")
     for lab_path in os.listdir(labs_path):
+        logger.log(f"##################### {lab_path} #####################")
         lab_path = os.path.join(labs_path, lab_path)
-
         logger.log(f"Parsing network scenario in: {lab_path}")
         lab = LabParser().parse(lab_path)
         CURRENT_LAB = lab
