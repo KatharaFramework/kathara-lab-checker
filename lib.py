@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any
+from typing import Any, Union
 
 import jc
 from Kathara.exceptions import MachineNotFoundError, LinkNotFoundError
@@ -60,6 +60,7 @@ def check_collision_domain(cd_t: Link, lab: Lab) -> tuple[str, bool, str]:
                       f"are different from the one in the template {list(cd_t.machines.keys())}.")
             logger.log_red(reason)
             return test_text, False, reason
+        logger.log_green("OK")
         return test_text, True, "OK"
     except LinkNotFoundError as e:
         logger.log_red(e)
@@ -104,9 +105,9 @@ def get_kernel_routes(device: Machine, lab: Lab) -> dict[str, Any]:
     return json.loads(output)
 
 
-def check_negative_route(route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
+def check_negative_route(device_name: str, route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
     test_text = f"Check that route {route_to_check} " + (f"with nexthop {next_hop} " if next_hop else "") + \
-                "IS NOT in the routing table:\t"
+                f"IS NOT in the routing table of device `{device_name}`:\t"
     logger.log(test_text, end="")
     for route in routes:
         if route['dst'] == route_to_check:
@@ -117,9 +118,9 @@ def check_negative_route(route_to_check: str, next_hop: str, routes) -> tuple[st
     return test_text, True, "OK"
 
 
-def check_positive_route(route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
+def check_positive_route(device_name: str, route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
     test_text = f"Check that route {route_to_check} " + (f"with nexthop {next_hop} " if next_hop else "") + \
-                "is in the routing table:\t"
+                f"IS in the routing table of device `{device_name}`:\t"
     logger.log(test_text, end="")
     for route in routes:
         if route['dst'] == route_to_check:
@@ -138,15 +139,29 @@ def check_positive_route(route_to_check: str, next_hop: str, routes) -> tuple[st
     return test_text, False, reason
 
 
-def check_kernel_route(route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
+def check_kernel_route(device_name: str, route_to_check: str, next_hop: str, routes) -> tuple[str, bool, str]:
     negative = False
     if route_to_check.startswith("!"):
         route_to_check = route_to_check[1:]
         negative = True
     if not negative:
-        return check_positive_route(route_to_check, next_hop, routes)
+        return check_positive_route(device_name, route_to_check, next_hop, routes)
     else:
-        return check_negative_route(route_to_check, next_hop, routes)
+        return check_negative_route(device_name, route_to_check, next_hop, routes)
+
+
+def check_kernel_routes(device_name: str, routes_to_check: list[Union[str, tuple[str, str]]], lab: Lab):
+    logger.log(f"Checking Routing Table of {device_name}")
+    device = lab.get_machine(device_name)
+    device_routes = get_kernel_routes(device, lab)
+    results = []
+    for route in routes_to_check:
+        next_hop = None
+        if type(route) == list:
+            next_hop = route[1]
+            route = route[0]
+        results.append(check_kernel_route(device_name, route, next_hop, device_routes))
+    return results
 
 
 def check_bgp_peering(device: Machine, lab: Lab, neighbor: str) -> tuple[str, bool, str]:
@@ -263,28 +278,12 @@ def check_local_name_server_for_device(local_ns_ip: str, device_name: str, lab: 
             return test_text, False, reason
 
 
-def verifying_dns_name_reachability_from_device(device_name: str, dns_name: str, lab: Lab) -> tuple[str, bool, str]:
-    test_text = f"Verifying `{dns_name}` reachability from device `{device_name}`:\t"
-    logger.log(test_text, end="")
-    exec_output_gen = kathara_manager.exec(machine_name=device_name,
-                                           command=f"bash -c 'ping -q -c 3 {dns_name}; echo $?'",
-                                           lab_hash=lab.hash)
-    output = get_output(exec_output_gen)
-    if output.splitlines()[-1] == '0':
-        logger.log_green("OK")
-        return test_text, True, "OK"
-    else:
-        reason = f"`{dns_name}` not reachable from device `{device_name}`"
-        logger.log_red(reason)
-        return test_text, False, reason
-
-
-def verifying_reachability_from_device(device_name: str, ip_to_reach: str, lab: Lab) -> tuple[str, bool, str]:
-    test_text = f"Verifying `{ip_to_reach}` reachability from device `{device_name}`:\t"
+def verifying_reachability_from_device(device_name: str, destination: str, lab: Lab) -> tuple[str, bool, str]:
+    test_text = f"Verifying `{destination}` reachability from device `{device_name}`:\t"
     logger.log(test_text, end="")
     try:
         exec_output_gen = kathara_manager.exec(machine_name=device_name,
-                                               command=f"bash -c 'ping -q -n -c 1 {ip_to_reach}; echo $?'",
+                                               command=f"bash -c 'ping -q -n -c 1 {destination}; echo $?'",
                                                lab_hash=lab.hash)
     except MachineNotFoundError as e:
         return test_text, False, str(e)
@@ -293,6 +292,6 @@ def verifying_reachability_from_device(device_name: str, ip_to_reach: str, lab: 
         logger.log_green("OK")
         return test_text, True, "OK"
     else:
-        reason = f"`{ip_to_reach}` not reachable from device `{device_name}`"
+        reason = f"`{destination}` not reachable from device `{device_name}`"
         logger.log_red(reason)
         return test_text, False, reason

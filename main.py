@@ -1,17 +1,32 @@
 import json
 import os
+import shutil
+import signal
 import time
+from typing import Optional
 
 from Kathara.manager.Kathara import Kathara
+from Kathara.model.Lab import Lab
 from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 
 import lib
 import logger
 
+CURRENT_LAB: Optional[Lab] = None
+
+
+def handler(signum, frame):
+    if CURRENT_LAB:
+        logger.log_yellow(f"\nCtrl-C was pressed. Undeploying current lab in: {CURRENT_LAB.fs_path()}")
+        Kathara.get_instance().undeploy_lab(lab=CURRENT_LAB)
+    exit(1)
+
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, handler)
     Setting.get_instance().load_from_dict({"image": "kathara/frr"})
-    manager = Kathara.get_instance()
+    manager: Kathara = Kathara.get_instance()
 
     logger.log("Reading Test configuration...")
     with open("configuration.json", "r") as json_conf:
@@ -24,8 +39,9 @@ if __name__ == '__main__':
 
         logger.log(f"Parsing network scenario in: {lab_path}")
         lab = LabParser().parse(lab_path)
+        CURRENT_LAB = lab
 
-        logger.log(f"Undeploying network scenario...")
+        logger.log(f"Undeploying network scenario in case it was running...")
         manager.undeploy_lab(lab=lab)
         logger.log(f"Deploying network scenario...")
         manager.deploy_lab(lab=lab)
@@ -85,16 +101,8 @@ if __name__ == '__main__':
                             lib.check_protocol_injection(device, daemon_name, injected_protocol, lab))
 
         logger.log(f"Checking Routing Tables...")
-        for device_name, routes in configuration['test']['kernel_routes'].items():
-            logger.log(f"Checking Routing Table of {device_name}")
-            device = lab.get_machine(device_name)
-            device_routes = lib.get_kernel_routes(device, lab)
-            for route in routes:
-                next_hop = None
-                if type(route) == list:
-                    next_hop = route[1]
-                    route = route[0]
-                collected_tests.append(lib.check_kernel_route(route, next_hop, device_routes))
+        for device_name, routes_to_check in configuration['test']['kernel_routes'].items():
+            collected_tests.extend(lib.check_kernel_routes(device_name, routes_to_check, lab))
 
         for application_name, application in configuration['test']['applications'].items():
             if application_name == "dns":
@@ -112,7 +120,7 @@ if __name__ == '__main__':
                     logger.log(f"Checking reachability of dns name `{dns_name}` from `{devices}`...")
                     for device_name in devices:
                         collected_tests.append(
-                            lib.verifying_dns_name_reachability_from_device(device_name, dns_name, lab))
+                            lib.verifying_reachability_from_device(device_name, dns_name, lab))
 
         logger.log("Undeploying Network Scenario")
         manager.undeploy_lab(lab=lab)
@@ -123,14 +131,31 @@ if __name__ == '__main__':
         logger.log(f"Total Tests: {total_tests}")
         logger.log(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-        report_path = os.path.join(lab.fs_path(), "failed.txt")
+        test_results_path = os.path.join(lab.fs_path(), "test_results")
+        if os.path.exists(test_results_path):
+            shutil.rmtree(test_results_path)
+
+        os.mkdir(test_results_path)
+
+        summary_path = os.path.join(test_results_path, "summary.txt")
+        with open(summary_path, "w") as result_file:
+            result_file.write("############ Tests Summary  ############\n")
+            result_file.write(f"Total Tests: {total_tests}\n")
+            result_file.write(f"Passed Tests: {test_results.count(True)}/{total_tests}\n")
+            result_file.write(f"Failed Tests: {test_results.count(False)}/{total_tests}\n")
+
+        all_path = os.path.join(test_results_path, "all_tests.txt")
+        with open(all_path, "w") as result_file:
+            result_file.write("############ Ran Tests  ############\n")
+            for idx, test in enumerate(collected_tests):
+                result_file.write(f"################# {idx} #################\n")
+                result_file.write(f"Test: {test[0]}\nResult: {test[1]}\nReason: {test[2]}\n")
+
+        failed_path = os.path.join(test_results_path, "failed.txt")
         if failed_tests:
-            logger.log(f"Writing FAILED test report to: {report_path}")
-            with open(report_path, "w") as result_file:
-                result_file.write("############ Failed Tests ############")
+            logger.log(f"Writing FAILED test report to: {failed_path}")
+            with open(failed_path, "w") as result_file:
+                result_file.write("############ Failed Tests ############\n")
                 for idx, failed in enumerate(failed_tests):
                     result_file.write(f"################# {idx} #################\n")
                     result_file.write(f"Test: {failed[0]}\nResult: {failed[1]}\nReason: {failed[2]}\n")
-
-        elif os.path.exists(report_path):
-            os.remove(report_path)
