@@ -25,16 +25,16 @@ def handler(signum, frame):
     exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='A tool for automatically check Kathará network scenarios',
-        add_help=True
+        description="A tool for automatically check Kathará network scenarios", add_help=True
     )
 
     parser.add_argument(
-        '--config', '-c',
+        "--config",
+        "-c",
         required=True,
-        help='The path to the configuration file for the tests',
+        help="The path to the configuration file for the tests",
     )
 
     args = parser.parse_args(sys.argv[1:])
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     with open(args.config, "r") as json_conf:
         configuration = json.load(json_conf)
 
-    labs_path = os.path.abspath(configuration['labs_path'])
+    labs_path = os.path.abspath(configuration["labs_path"])
     logger.log(f"Parsing network scenarios in: {labs_path}")
     for lab_path in os.listdir(labs_path):
         logger.log(f"##################### {lab_path} #####################")
@@ -63,15 +63,13 @@ if __name__ == '__main__':
         manager.deploy_lab(lab=lab)
 
         logger.log(f"Waiting convergence...")
-        time.sleep(configuration['convergence_time'])
+        time.sleep(configuration["convergence_time"])
 
         logger.log(f"Starting tests")
         collected_tests = []
-        logger.PASSED_TEST = []
-        logger.FAILED_TEST = []
 
         logger.log(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
-        lab_template = LabParser().parse(configuration['structure'])
+        lab_template = LabParser().parse(configuration["structure"])
 
         logger.log("Checking that all devices exist...")
         collected_tests.extend(lib.check_devices(lab, lab_template))
@@ -79,19 +77,18 @@ if __name__ == '__main__':
         collected_tests.extend(lib.check_collision_domains(lab, lab_template))
 
         logger.log(f"Starting reachability test...")
-        for device_name, ips_to_reach in configuration['test']['reachability'].items():
+        for device_name, ips_to_reach in configuration["test"]["reachability"].items():
             for ip in ips_to_reach:
-                collected_tests.append(
-                    lib.verifying_reachability_from_device(device_name, ip, lab))
+                collected_tests.append(lib.verifying_reachability_from_device(device_name, ip, lab))
 
         logger.log(f"Checking if daemons are running...")
-        for daemon, devices in configuration['test']['daemons'].items():
+        for daemon, devices in configuration["test"]["daemons"].items():
             logger.log(f"Checking if {daemon} is running on {devices}")
             for device_name in devices:
                 collected_tests.append(lib.check_running_daemon(device_name, daemon, lab))
 
         logger.log("Checking routing daemons configurations...")
-        for daemon_name, daemon_test in configuration['test']['protocols'].items():
+        for daemon_name, daemon_test in configuration["test"]["protocols"].items():
             if daemon_name == "bgpd":
                 logger.log(f"Checking BGP peerings configurations...")
                 for device_name, neighbors in daemon_test["peerings"].items():
@@ -114,29 +111,31 @@ if __name__ == '__main__':
                     device = lab.get_machine(device_name)
                     for injected_protocol in injected_protocols:
                         collected_tests.append(
-                            lib.check_protocol_injection(device, daemon_name, injected_protocol, lab))
+                            lib.check_protocol_injection(device, daemon_name, injected_protocol, lab)
+                        )
 
         logger.log(f"Checking Routing Tables...")
-        for device_name, routes_to_check in configuration['test']['kernel_routes'].items():
+        for device_name, routes_to_check in configuration["test"]["kernel_routes"].items():
             collected_tests.extend(lib.check_kernel_routes(device_name, routes_to_check, lab))
 
-        for application_name, application in configuration['test']['applications'].items():
+        for application_name, application in configuration["test"]["applications"].items():
             if application_name == "dns":
                 logger.log("Checking DNS configurations...")
-                for domain, name_servers in application['authoritative'].items():
+                for domain, name_servers in application["authoritative"].items():
                     for ns in name_servers:
                         collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, "as1r1", lab))
 
                 logger.log("Checking local name servers configurations...")
-                for local_ns, managed_devices in application['local_ns'].items():
+                for local_ns, managed_devices in application["local_ns"].items():
                     for device in managed_devices:
                         collected_tests.append(lib.check_local_name_server_for_device(local_ns, device, lab))
 
-                for dns_name, devices in application['reachability'].items():
+                for dns_name, devices in application["reachability"].items():
                     logger.log(f"Checking reachability of dns name `{dns_name}` from `{devices}`...")
                     for device_name in devices:
                         collected_tests.append(
-                            lib.verifying_reachability_from_device(device_name, dns_name, lab))
+                            lib.verifying_reachability_from_device(device_name, dns_name, lab)
+                        )
 
         logger.log("Undeploying Network Scenario")
         manager.undeploy_lab(lab=lab)
