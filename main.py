@@ -68,8 +68,13 @@ if __name__ == "__main__":
             continue
 
         logger.log(f"Parsing network scenario in: {lab_path}")
-        lab = LabParser().parse(lab_path)
-        CURRENT_LAB = lab
+
+        try:
+            lab = LabParser().parse(lab_path)
+            CURRENT_LAB = lab
+        except IOError as e:
+            logger.log_yellow(f"{str(e)} Skipping directory")
+            continue
 
         logger.log(f"Undeploying network scenario in case it was running...")
         manager.undeploy_lab(lab=lab)
