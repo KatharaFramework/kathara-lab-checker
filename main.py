@@ -37,9 +37,16 @@ if __name__ == "__main__":
         help="The path to the configuration file for the tests",
     )
 
+    parser.add_argument(
+        "--nocache",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Re-process all the tests",
+    )
+
     args = parser.parse_args(sys.argv[1:])
 
-    print(args)
     signal.signal(signal.SIGINT, handler)
     Setting.get_instance().load_from_dict({"image": "kathara/frr"})
     manager: Kathara = Kathara.get_instance()
@@ -53,6 +60,12 @@ if __name__ == "__main__":
     for lab_path in os.listdir(labs_path):
         logger.log(f"##################### {lab_path} #####################")
         lab_path = os.path.join(labs_path, lab_path)
+
+        test_results_path = os.path.join(lab_path, "test_results")
+        if os.path.exists(test_results_path) and not args.nocache:
+            logger.log_yellow("Network scenario already processed, skipping...")
+            continue
+
         logger.log(f"Parsing network scenario in: {lab_path}")
         lab = LabParser().parse(lab_path)
         CURRENT_LAB = lab
