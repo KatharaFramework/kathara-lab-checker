@@ -38,7 +38,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--nocache",
+        "--no-cache",
         required=False,
         action="store_true",
         default=False,
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         lab_path = os.path.join(labs_path, lab_path)
 
         test_results_path = os.path.join(lab_path, "test_results")
-        if os.path.exists(test_results_path) and not args.nocache:
+        if os.path.exists(test_results_path) and not args.no_cache:
             logger.log_yellow("Network scenario already processed, skipping...")
             continue
 
