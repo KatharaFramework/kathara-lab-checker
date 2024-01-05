@@ -2,6 +2,7 @@
   "labs_path": "laboratories",
   "convergence_time": 10,
   "structure": "resources/structure",
+  "default_image": "kathara/frr",
   "test": {
     "daemons": {
       "bgpd": [

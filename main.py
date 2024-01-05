@@ -48,12 +48,13 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     signal.signal(signal.SIGINT, handler)
-    Setting.get_instance().load_from_dict({"image": "kathara/frr"})
     manager: Kathara = Kathara.get_instance()
 
     logger.log("Reading Test configuration...")
     with open(args.config, "r") as json_conf:
         configuration = json.load(json_conf)
+
+    Setting.get_instance().load_from_dict({"image": configuration["default_image"]})
 
     labs_path = os.path.abspath(configuration["labs_path"])
     logger.log(f"Parsing network scenarios in: {labs_path}")
