@@ -77,18 +77,26 @@ def check_collision_domains(lab: Lab, lab_template: Lab) -> list[tuple[str, bool
 
 
 def check_running_daemon(device_name: str, daemon: str, lab: Lab) -> tuple[str, bool, str]:
-    test_text = f"Checking that {daemon} is running on device `{device_name}`: "
+    invert: bool = False
+    if daemon.startswith("!"):
+        daemon = daemon[1:]
+        test_text = f"Checking that {daemon} is not running on device `{device_name}`: "
+        invert = True
+    else:
+        test_text = f"Checking that {daemon} is running on device `{device_name}`: "
+        invert = False
+
     try:
         device = lab.get_machine(device_name)
         logger.log(test_text, end="")
         output = get_output(
             kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash, command=f"pgrep {daemon}")
         )
-        if output != "":
+        if (output != "") ^ invert:
             logger.log_green("OK")
             return test_text, True, "OK"
         else:
-            reason = f"Daemon {daemon} is not running on device `{device_name}"
+            reason = f"Daemon {daemon} is {'' if invert else 'not '}running on device `{device_name}"
             logger.log_red(reason)
             return test_text, False, reason
     except MachineNotFoundError as e:

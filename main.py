@@ -101,10 +101,10 @@ if __name__ == "__main__":
                 collected_tests.append(lib.verifying_reachability_from_device(device_name, ip, lab))
 
         logger.log(f"Checking if daemons are running...")
-        for daemon, devices in configuration["test"]["daemons"].items():
-            logger.log(f"Checking if {daemon} is running on {devices}")
-            for device_name in devices:
-                collected_tests.append(lib.check_running_daemon(device_name, daemon, lab))
+        for device, daemons in configuration["test"]["daemons"].items():
+            logger.log(f"Checking if daemons are running on {device}")
+            for daemon_name in daemons:
+                collected_tests.append(lib.check_running_daemon(device, daemon_name, lab))
 
         logger.log("Checking routing daemons configurations...")
         for daemon_name, daemon_test in configuration["test"]["protocols"].items():
