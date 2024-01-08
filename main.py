@@ -74,10 +74,13 @@ if __name__ == "__main__":
     sheet["D1"] = "Tests Total Number"
     sheet["E1"] = "Problems"
 
-    for index, lab_path in enumerate(os.listdir(labs_path)):
+    for index, lab_dir in enumerate(os.listdir(labs_path)):
+        lab_path = os.path.join(labs_path, lab_dir)
+        if not os.path.isdir(lab_path):
+            continue
+
         logger.log(f"##################### {lab_path} #####################")
         sheet["A" + str(index + 2)] = lab_path
-        lab_path = os.path.join(labs_path, lab_path)
 
         test_results_path = os.path.join(lab_path, "test_results")
         if os.path.exists(test_results_path) and not args.no_cache:

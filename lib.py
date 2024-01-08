@@ -261,9 +261,7 @@ def check_protocol_injection(
         logger.log_green("OK")
         return test_text, True, "OK"
     else:
-        reason = (
-            f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}`"
-        )
+        reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on device `{device.name}`"
         logger.log_red(reason)
     return test_text, False, reason
 
