@@ -4,7 +4,7 @@ import re
 from typing import Any, Union
 
 import jc
-from Kathara.exceptions import MachineNotFoundError, LinkNotFoundError
+from Kathara.exceptions import MachineNotFoundError, LinkNotFoundError, MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 from Kathara.model.Link import Link
@@ -313,16 +313,17 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
         return test_text, False, reason
 
 
-def check_ip_on_interface(device_name: str, iface_num: int, ip: str, dumped_iface: dict) -> tuple[str, bool, str]:
+def check_ip_on_interface(device_name: str, iface_num: int, ip: str, iface_info: dict) -> tuple[str, bool, str]:
     test_text = f"Verifying the IP address ({ip}) assigned to eth{iface_num} of {device_name}:\t"
     logger.log(test_text, end="")
     ip_address = ipaddress.ip_interface(ip)
 
     prefix_len = int(ip_address.with_prefixlen.split("/")[1])
-    iface_info = next(filter(lambda x: x["ifname"] == f"eth{iface_num}", dumped_iface))
 
+    assigned_ips = []
     if iface_info and 'addr_info' in iface_info:
         for addr_info in iface_info["addr_info"]:
+            assigned_ips.append(f"{addr_info['local']}/{addr_info['prefixlen']}")
             if addr_info["local"] == str(ip_address.ip):
                 if addr_info['prefixlen'] == prefix_len:
                     logger.log_green("OK")
@@ -331,22 +332,32 @@ def check_ip_on_interface(device_name: str, iface_num: int, ip: str, dumped_ifac
                     reason = f"The IP address has a wrong netmask ({prefix_len})"
                     logger.log_red(reason)
                     return test_text, False, reason
-        reason = f"The IP address on {iface_info['ifname']} is not set to {ip_address}`"
+        reason = f"The interface `{iface_info['ifname']}` of `{device_name}` has the following IP addresses: {assigned_ips}`."
         logger.log_red(reason)
         return test_text, False, reason
 
 
 def check_ips_on_interfaces(device_name: str, iface_to_ips: dict[str, str], lab: Lab) -> list[tuple[str, bool, str]]:
     logger.log(f"Checking IPs mapping on device `{device_name}`...")
-    exec_output_gen = kathara_manager.exec(
-        machine_name=device_name,
-        command=f"ip -j address",
-        lab_hash=lab.hash,
-    )
+    results = []
+    try:
+        exec_output_gen = kathara_manager.exec(
+            machine_name=device_name,
+            command=f"ip -j address",
+            lab_hash=lab.hash,
+        )
+    except MachineNotRunningError as e:
+        results.append((f"Trying to get information on {device_name} interfaces:", False, str(e)))
+        return results
 
     dumped_iface = json.loads(get_output(exec_output_gen))
-    results = []
+
     for interface_num, ip in iface_to_ips.items():
-        results.append(check_ip_on_interface(device_name, int(interface_num), ip, dumped_iface))
+        try:
+            iface_info = next(filter(lambda x: x["ifname"] == f"eth{interface_num}", dumped_iface))
+            results.append(check_ip_on_interface(device_name, int(interface_num), ip, iface_info))
+        except StopIteration:
+            results.append((f"Trying to get information on interface eth{interface_num} of {device_name}:", False,
+                            f"Interface eth`{interface_num}` not found on `{device_name}`"))
 
     return results
