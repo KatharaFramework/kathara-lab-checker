@@ -112,6 +112,9 @@ if __name__ == "__main__":
         logger.log("Checking collision domains...")
         collected_tests.extend(lib.check_collision_domains(lab, lab_template))
 
+        logger.log("Checking that all required startup files exist...")
+        collected_tests.extend(lib.check_startup(lab, configuration["test"]["requiring_startup"]))
+
         if "ip_mapping" in configuration["test"]:
             for device_name, iface_to_ips in configuration["test"]["ip_mapping"].items():
                 collected_tests.extend(lib.check_ips_on_interfaces(device_name, iface_to_ips, lab))
@@ -221,11 +224,12 @@ if __name__ == "__main__":
 
         if failed_tests:
             failed_string = ""
-            for failed in failed_tests:
-                failed_string += f"{failed[2]}\n"
+            for index, failed in enumerate(failed_tests):
+                failed_string += f"{index}: {failed[2]}\n"
             sheet["E" + str(index + 2)] = failed_string
             sheet["E" + str(index + 2)].alignment = Alignment(wrapText=True)
         else:
             sheet["E" + str(index + 2)] = "None"
 
-    workbook.save("example.xlsx")
+    excel_file = os.path.join(labs_path, "results.xlsx")
+    workbook.save(excel_file)

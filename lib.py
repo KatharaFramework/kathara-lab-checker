@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import os
 import re
 from typing import Any, Union
 
@@ -30,6 +31,21 @@ def get_output(exec_output):
     except StopIteration:
         pass
     return output
+
+
+def check_startup(lab: Lab, machines_requiring_startup: list[str]) -> list[tuple[str, bool, str]]:
+    results = []
+
+    for device_name in machines_requiring_startup:
+        test_text = f"Checking existence of `{device_name}.startup` file: "
+        logger.log(test_text, end="")
+        if lab.fs.exists(device_name + ".startup"):
+            results.append((test_text, True, "OK"))
+            logger.log_green("OK")
+        else:
+            results.append((test_text, False, f"{device_name}.startup file not found"))
+            logger.log_red(f"{device_name}.startup file not found")
+    return results
 
 
 def check_device(device_name: str, lab) -> tuple[str, bool, str]:
@@ -113,12 +129,12 @@ def get_kernel_routes(device: Machine, lab: Lab) -> dict[str, Any]:
 
 
 def check_negative_route(
-        device_name: str, route_to_check: str, next_hop: str, routes: list[dict]
+    device_name: str, route_to_check: str, next_hop: str, routes: list[dict]
 ) -> tuple[str, bool, str]:
     test_text = (
-            f"Check that route {route_to_check} "
-            + (f"with nexthop {next_hop} " if next_hop else "")
-            + f"IS NOT in the routing table of device `{device_name}`:\t"
+        f"Check that route {route_to_check} "
+        + (f"with nexthop {next_hop} " if next_hop else "")
+        + f"IS NOT in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
     for route in routes:
@@ -131,12 +147,12 @@ def check_negative_route(
 
 
 def check_positive_route(
-        device_name: str, route_to_check: str, next_hop: str, routes
+    device_name: str, route_to_check: str, next_hop: str, routes
 ) -> tuple[str, bool, str]:
     test_text = (
-            f"Check that route {route_to_check} "
-            + (f"with nexthop {next_hop} " if next_hop else "")
-            + f"IS in the routing table of device `{device_name}`:\t"
+        f"Check that route {route_to_check} "
+        + (f"with nexthop {next_hop} " if next_hop else "")
+        + f"IS in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
     for route in routes:
@@ -218,9 +234,17 @@ def check_bgp_network_command(device: Machine, network: str, lab: Lab) -> tuple[
 
 
 def check_protocol_injection(
-        device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
+    device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
 ) -> tuple[str, bool, str]:
-    test_text = f"Checking that {injected_protocol} is injected into {protocol_to_check} for {device.name}:\t"
+    invert: bool = False
+    if injected_protocol.startswith("!"):
+        injected_protocol = injected_protocol[1:]
+        test_text = f"Checking that {injected_protocol} routes are not redistributed to {protocol_to_check} on device `{device.name}`: "
+        invert = True
+    else:
+        test_text = f"Checking that {injected_protocol} routes are redistributed to {protocol_to_check} on device `{device.name}`: "
+        invert = False
+
     logger.log(test_text, end="")
     exec_output_gen = kathara_manager.exec(
         machine_name=device.name,
@@ -228,17 +252,24 @@ def check_protocol_injection(
         lab_hash=lab.hash,
     )
     output = get_output(exec_output_gen).split("\n")
+    found = False
     for line in output:
         if re.search(rf"^\s*redistribute\s*{injected_protocol}$", line):
-            logger.log_green("OK")
-            return test_text, True, "OK"
-    reason = f"{injected_protocol} routes are not injected into `{protocol_to_check}`"
-    logger.log_red(reason)
+            found = True
+            break
+    if found ^ invert:
+        logger.log_green("OK")
+        return test_text, True, "OK"
+    else:
+        reason = (
+            f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}`"
+        )
+        logger.log_red(reason)
     return test_text, False, reason
 
 
 def check_dns_authority_for_domain(
-        domain: str, authority_ip: str, device_name: str, lab: Lab
+    domain: str, authority_ip: str, device_name: str, lab: Lab
 ) -> tuple[str, bool, str]:
     test_text = f"Checking that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
@@ -321,7 +352,9 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
         return test_text, False, reason
 
 
-def check_ip_on_interface(device_name: str, iface_num: int, ip: str, iface_info: dict) -> tuple[str, bool, str]:
+def check_ip_on_interface(
+    device_name: str, iface_num: int, ip: str, iface_info: dict
+) -> tuple[str, bool, str]:
     test_text = f"Verifying the IP address ({ip}) assigned to eth{iface_num} of {device_name}:\t"
     logger.log(test_text, end="")
     ip_address = ipaddress.ip_interface(ip)
@@ -329,11 +362,11 @@ def check_ip_on_interface(device_name: str, iface_num: int, ip: str, iface_info:
     prefix_len = int(ip_address.with_prefixlen.split("/")[1])
 
     assigned_ips = []
-    if iface_info and 'addr_info' in iface_info:
+    if iface_info and "addr_info" in iface_info:
         for addr_info in iface_info["addr_info"]:
             assigned_ips.append(f"{addr_info['local']}/{addr_info['prefixlen']}")
             if addr_info["local"] == str(ip_address.ip):
-                if addr_info['prefixlen'] == prefix_len:
+                if addr_info["prefixlen"] == prefix_len:
                     logger.log_green("OK")
                     return test_text, True, "OK"
                 else:
@@ -345,7 +378,9 @@ def check_ip_on_interface(device_name: str, iface_num: int, ip: str, iface_info:
         return test_text, False, reason
 
 
-def check_ips_on_interfaces(device_name: str, iface_to_ips: dict[str, str], lab: Lab) -> list[tuple[str, bool, str]]:
+def check_ips_on_interfaces(
+    device_name: str, iface_to_ips: dict[str, str], lab: Lab
+) -> list[tuple[str, bool, str]]:
     logger.log(f"Checking IPs mapping on device `{device_name}`...")
     results = []
     try:
@@ -365,7 +400,12 @@ def check_ips_on_interfaces(device_name: str, iface_to_ips: dict[str, str], lab:
             iface_info = next(filter(lambda x: x["ifname"] == f"eth{interface_num}", dumped_iface))
             results.append(check_ip_on_interface(device_name, int(interface_num), ip, iface_info))
         except StopIteration:
-            results.append((f"Trying to get information on interface eth{interface_num} of {device_name}:", False,
-                            f"Interface eth`{interface_num}` not found on `{device_name}`"))
+            results.append(
+                (
+                    f"Trying to get information on interface eth{interface_num} of {device_name}:",
+                    False,
+                    f"Interface eth`{interface_num}` not found on `{device_name}`",
+                )
+            )
 
     return results
