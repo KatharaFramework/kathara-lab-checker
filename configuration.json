@@ -35,7 +35,7 @@
         "2": "3.2.0.1/24",
         "3": "3.1.0.1/24"
       },
-       "root": {
+      "root": {
         "0": "1.1.0.2/24"
       },
       "net": {
@@ -49,26 +49,44 @@
       }
     },
     "daemons": {
-      "bgpd": [
-        "as1r1",
-        "as1r2",
-        "as2r1",
-        "as2r2",
-        "as3r1",
-        "as3r2"
+      "as1r1": [
+        "bgpd",
+        "ripd"
       ],
-      "ripd": [
-        "as1r1",
-        "as1r2",
-        "as2r1",
-        "as2r2",
-        "as3r1",
-        "as3r2"
+      "as1r2": [
+        "bgpd",
+        "ripd"
       ],
-      "named": [
-        "local",
-        "net",
-        "root"
+      "as2r1": [
+        "bgpd",
+        "ripd"
+      ],
+      "as2r2": [
+        "bgpd",
+        "ripd"
+      ],
+      "as3r1": [
+        "bgpd",
+        "ripd"
+      ],
+      "as3r2": [
+        "bgpd",
+        "ripd"
+      ],
+      "local": [
+        "named",
+        "!watchfrr"
+      ],
+      "net": [
+        "named",
+        "!watchfrr"
+      ],
+      "root": [
+        "named",
+        "!watchfrr"
+      ],
+      "pc": [
+        "!watchfrr"
       ]
     },
     "kernel_routes": {
