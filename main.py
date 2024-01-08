@@ -5,6 +5,9 @@ import shutil
 import signal
 import sys
 import time
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
+
 from typing import Optional
 
 from Kathara.manager.Kathara import Kathara
@@ -58,8 +61,22 @@ if __name__ == "__main__":
 
     labs_path = os.path.abspath(configuration["labs_path"])
     logger.log(f"Parsing network scenarios in: {labs_path}")
-    for lab_path in os.listdir(labs_path):
+
+    # Create a new Excel workbook
+    workbook = Workbook()
+
+    # Select the active sheet
+    sheet = workbook.active
+
+    sheet["A1"] = "Student Name"
+    sheet["B1"] = "Tests Passed"
+    sheet["C1"] = "Tests Failed"
+    sheet["D1"] = "Tests Total Number"
+    sheet["E1"] = "Problems"
+
+    for index, lab_path in enumerate(os.listdir(labs_path)):
         logger.log(f"##################### {lab_path} #####################")
+        sheet["A" + str(index + 2)] = lab_path
         lab_path = os.path.join(labs_path, lab_path)
 
         test_results_path = os.path.join(lab_path, "test_results")
@@ -165,6 +182,10 @@ if __name__ == "__main__":
         logger.log(f"Total Tests: {total_tests}")
         logger.log(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
+        sheet["B" + str(index + 2)] = test_results.count(True)
+        sheet["C" + str(index + 2)] = test_results.count(False)
+        sheet["D" + str(index + 2)] = total_tests
+
         test_results_path = os.path.join(lab.fs_path(), "test_results")
         if os.path.exists(test_results_path):
             shutil.rmtree(test_results_path)
@@ -193,3 +214,14 @@ if __name__ == "__main__":
                 for idx, failed in enumerate(failed_tests):
                     result_file.write(f"################# {idx} #################\n")
                     result_file.write(f"Test: {failed[0]}\nResult: {failed[1]}\nReason: {failed[2]}\n")
+
+        if failed_tests:
+            failed_string = ""
+            for failed in failed_tests:
+                failed_string += f"{failed[2]}\n"
+            sheet["E" + str(index + 2)] = failed_string
+            sheet["E" + str(index + 2)].alignment = Alignment(wrapText=True)
+        else:
+            sheet["E" + str(index + 2)] = "None"
+
+    workbook.save("example.xlsx")
