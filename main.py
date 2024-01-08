@@ -74,7 +74,7 @@ if __name__ == "__main__":
     sheet["D1"] = "Tests Total Number"
     sheet["E1"] = "Problems"
 
-    for index, lab_dir in enumerate(os.listdir(labs_path)):
+    for index, lab_dir in enumerate(os.listdir(labs_path)[:2]):
         lab_path = os.path.join(labs_path, lab_dir)
         if not os.path.isdir(lab_path):
             continue
@@ -227,8 +227,10 @@ if __name__ == "__main__":
 
         if failed_tests:
             failed_string = ""
-            for index, failed in enumerate(failed_tests):
-                failed_string += f"{index}: {failed[2]}\n"
+            for idx, failed in enumerate(failed_tests):
+                failed_string += f"{idx}: {failed[2]}\n"
+            if len(failed_string) >= 32767:
+                logger.log_red("ERROR: Excel cell too big")
             sheet["E" + str(index + 2)] = failed_string
             sheet["E" + str(index + 2)].alignment = Alignment(wrapText=True)
         else:
