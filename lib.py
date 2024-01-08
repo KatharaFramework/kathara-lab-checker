@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import re
 from typing import Any, Union
@@ -104,12 +105,12 @@ def get_kernel_routes(device: Machine, lab: Lab) -> dict[str, Any]:
 
 
 def check_negative_route(
-    device_name: str, route_to_check: str, next_hop: str, routes
+        device_name: str, route_to_check: str, next_hop: str, routes: list[dict]
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check} "
-        + (f"with nexthop {next_hop} " if next_hop else "")
-        + f"IS NOT in the routing table of device `{device_name}`:\t"
+            f"Check that route {route_to_check} "
+            + (f"with nexthop {next_hop} " if next_hop else "")
+            + f"IS NOT in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
     for route in routes:
@@ -122,12 +123,12 @@ def check_negative_route(
 
 
 def check_positive_route(
-    device_name: str, route_to_check: str, next_hop: str, routes
+        device_name: str, route_to_check: str, next_hop: str, routes
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check} "
-        + (f"with nexthop {next_hop} " if next_hop else "")
-        + f"IS in the routing table of device `{device_name}`:\t"
+            f"Check that route {route_to_check} "
+            + (f"with nexthop {next_hop} " if next_hop else "")
+            + f"IS in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
     for route in routes:
@@ -209,7 +210,7 @@ def check_bgp_network_command(device: Machine, network: str, lab: Lab) -> tuple[
 
 
 def check_protocol_injection(
-    device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
+        device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
 ) -> tuple[str, bool, str]:
     test_text = f"Checking that {injected_protocol} is injected into {protocol_to_check} for {device.name}:\t"
     logger.log(test_text, end="")
@@ -229,7 +230,7 @@ def check_protocol_injection(
 
 
 def check_dns_authority_for_domain(
-    domain: str, authority_ip: str, device_name: str, lab: Lab
+        domain: str, authority_ip: str, device_name: str, lab: Lab
 ) -> tuple[str, bool, str]:
     test_text = f"Checking that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
@@ -310,3 +311,42 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
         reason = f"`{destination}` not reachable from device `{device_name}`"
         logger.log_red(reason)
         return test_text, False, reason
+
+
+def check_ip_on_interface(device_name: str, iface_num: int, ip: str, dumped_iface: dict) -> tuple[str, bool, str]:
+    test_text = f"Verifying the IP address ({ip}) assigned to eth{iface_num} of {device_name}:\t"
+    logger.log(test_text, end="")
+    ip_address = ipaddress.ip_interface(ip)
+
+    prefix_len = int(ip_address.with_prefixlen.split("/")[1])
+    iface_info = next(filter(lambda x: x["ifname"] == f"eth{iface_num}", dumped_iface))
+
+    if iface_info and 'addr_info' in iface_info:
+        for addr_info in iface_info["addr_info"]:
+            if addr_info["local"] == str(ip_address.ip):
+                if addr_info['prefixlen'] == prefix_len:
+                    logger.log_green("OK")
+                    return test_text, True, "OK"
+                else:
+                    reason = f"The IP address has a wrong netmask ({prefix_len})"
+                    logger.log_red(reason)
+                    return test_text, False, reason
+        reason = f"The IP address on {iface_info['ifname']} is not set to {ip_address}`"
+        logger.log_red(reason)
+        return test_text, False, reason
+
+
+def check_ips_on_interfaces(device_name: str, iface_to_ips: dict[str, str], lab: Lab) -> list[tuple[str, bool, str]]:
+    logger.log(f"Checking IPs mapping on device `{device_name}`...")
+    exec_output_gen = kathara_manager.exec(
+        machine_name=device_name,
+        command=f"ip -j address",
+        lab_hash=lab.hash,
+    )
+
+    dumped_iface = json.loads(get_output(exec_output_gen))
+    results = []
+    for interface_num, ip in iface_to_ips.items():
+        results.append(check_ip_on_interface(device_name, int(interface_num), ip, dumped_iface))
+
+    return results

@@ -95,6 +95,10 @@ if __name__ == "__main__":
         logger.log("Checking collision domains...")
         collected_tests.extend(lib.check_collision_domains(lab, lab_template))
 
+        if "ip_mapping" in configuration["test"]:
+            for device_name, iface_to_ips in configuration["test"]["ip_mapping"].items():
+                collected_tests.extend(lib.check_ips_on_interfaces(device_name, iface_to_ips, lab))
+
         logger.log(f"Starting reachability test...")
         for device_name, ips_to_reach in configuration["test"]["reachability"].items():
             for ip in ips_to_reach:
