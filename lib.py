@@ -129,12 +129,12 @@ def get_kernel_routes(device_name: str, lab: Lab) -> dict[str, Any]:
 
 
 def check_negative_route(
-        device_name: str, route_to_check_original: str, next_hop: str, routes: list[dict]
+    device_name: str, route_to_check_original: str, next_hop: str, routes: list[dict]
 ) -> tuple[str, bool, str]:
     test_text = (
-            f"Check that route {route_to_check_original} "
-            + (f"with nexthop {next_hop} " if next_hop else "")
-            + f"IS NOT in the routing table of device `{device_name}`:\t"
+        f"Check that route {route_to_check_original} "
+        + (f"with nexthop {next_hop} " if next_hop else "")
+        + f"IS NOT in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
 
@@ -153,12 +153,12 @@ def check_negative_route(
 
 
 def check_positive_route(
-        device_name: str, route_to_check_original: str, next_hop: str, routes
+    device_name: str, route_to_check_original: str, next_hop: str, routes
 ) -> tuple[str, bool, str]:
     test_text = (
-            f"Check that route {route_to_check_original} "
-            + (f"with nexthop {next_hop} " if next_hop else "")
-            + f"IS in the routing table of device `{device_name}`:\t"
+        f"Check that route {route_to_check_original} "
+        + (f"with nexthop {next_hop} " if next_hop else "")
+        + f"IS in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
 
@@ -225,10 +225,13 @@ def check_bgp_peering(device: Machine, lab: Lab, neighbor: str) -> tuple[str, bo
         logger.log_red(output)
         return test_text, False, output
     output = json.loads(output)
-    for peer in output["ipv4Unicast"]["peers"]:
-        if neighbor == peer:
-            logger.log_green("OK")
-            return test_text, True, "OK"
+    try:
+        for peer in output["ipv4Unicast"]["peers"]:
+            if neighbor == peer:
+                logger.log_green("OK")
+                return test_text, True, "OK"
+    except KeyError:
+        pass
     reason = f"The peering between {device.name} and {neighbor} is not up."
     logger.log_red(reason)
     return test_text, False, reason
@@ -251,7 +254,7 @@ def check_bgp_network_command(device: Machine, network: str, lab: Lab) -> tuple[
 
 
 def check_protocol_injection(
-        device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
+    device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
 ) -> tuple[str, bool, str]:
     invert: bool = False
     if injected_protocol.startswith("!"):
@@ -293,7 +296,7 @@ def find_device_name_from_ip(ip_mappings, ip_search: str) -> str:
 
 
 def check_dns_authority_for_domain(
-        domain: str, authority_ip: str, device_name: str, lab: Lab
+    domain: str, authority_ip: str, device_name: str, lab: Lab
 ) -> tuple[str, bool, str]:
     test_text = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
@@ -318,7 +321,9 @@ def check_dns_authority_for_domain(
             authority_ips = []
             for root_server in root_servers:
                 exec_output_gen = kathara_manager.exec(
-                    machine_name=device_name, command=f"dig +short {root_server} @127.0.0.1", lab_hash=lab.hash
+                    machine_name=device_name,
+                    command=f"dig +short {root_server} @127.0.0.1",
+                    lab_hash=lab.hash,
                 )
                 ip = get_output(exec_output_gen).strip()
                 if authority_ip == ip:
@@ -330,12 +335,13 @@ def check_dns_authority_for_domain(
             logger.log_red(reason)
             return test_text, False, reason
         else:
-            reason_string = (f"named on {device_name} is running but answered "
-                             f"with {result[0]['status']} when quering for {domain}")
+            reason_string = (
+                f"named on {device_name} is running but answered "
+                f"with {result[0]['status']} when quering for {domain}"
+            )
             logger.log_red(reason_string)
             return test_text, False, reason_string
     else:
-
         with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
             systemctl_lines = find_lines_with_string(startup_file.readline(), "systemctl")
 
@@ -349,9 +355,7 @@ def check_dns_authority_for_domain(
 
                 output = get_output(exec_output_gen)
 
-                date_pattern = (
-                    r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
-                )
+                date_pattern = r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
 
                 reason_list = find_lines_with_string(output, "could not")
                 reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
@@ -430,7 +434,7 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
 
 
 def check_ip_on_interface(
-        device_name: str, iface_num: int, ip: str, iface_info: dict
+    device_name: str, iface_num: int, ip: str, iface_info: dict
 ) -> tuple[str, bool, str]:
     test_text = f"Verifying the IP address ({ip}) assigned to eth{iface_num} of {device_name}:\t"
     logger.log(test_text, end="")
@@ -456,7 +460,7 @@ def check_ip_on_interface(
 
 
 def check_ips_on_interfaces(
-        device_name: str, iface_to_ips: dict[str, str], lab: Lab
+    device_name: str, iface_to_ips: dict[str, str], lab: Lab
 ) -> list[tuple[str, bool, str]]:
     logger.log(f"Checking IPs mapping on device `{device_name}`...")
     results = []
