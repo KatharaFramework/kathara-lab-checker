@@ -129,17 +129,23 @@ def get_kernel_routes(device: Machine, lab: Lab) -> dict[str, Any]:
 
 
 def check_negative_route(
-    device_name: str, route_to_check: str, next_hop: str, routes: list[dict]
+    device_name: str, route_to_check_original: str, next_hop: str, routes: list[dict]
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check} "
+        f"Check that route {route_to_check_original} "
         + (f"with nexthop {next_hop} " if next_hop else "")
         + f"IS NOT in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
+
+    if route_to_check_original == "0.0.0.0/0":
+        route_to_check = "default"
+    else:
+        route_to_check = route_to_check_original
+
     for route in routes:
         if route["dst"] == route_to_check:
-            reason = f"The route `{route_to_check}` IS in the routing table!"
+            reason = f"The route `{route_to_check_original}` IS in the routing table!"
             logger.log_red(reason)
             return test_text, False, reason
     logger.log_green("OK")
