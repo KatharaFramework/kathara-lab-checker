@@ -311,24 +311,32 @@ def check_dns_authority_for_domain(
         logger.log_red("\n" + output)
         return test_text, False, output
     result = jc.parse("dig", output)
-    if result and result[0]["status"] == "NOERROR":
-        result = result.pop()
-        root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
-        authority_ips = []
-        for root_server in root_servers:
-            exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command=f"dig +short {root_server} @127.0.0.1", lab_hash=lab.hash
-            )
-            ip = get_output(exec_output_gen).strip()
-            if authority_ip == ip:
-                logger.log_green("OK")
-                return test_text, True, "OK"
-            else:
-                authority_ips.append(ip)
-        reason = f"The dns authorities for domain `{domain}` have the following IPs {authority_ips}"
-        logger.log_red(reason)
-        return test_text, False, reason
+    if result:
+        if result[0]["status"] == "NOERROR":
+            result = result.pop()
+            root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
+            authority_ips = []
+            for root_server in root_servers:
+                exec_output_gen = kathara_manager.exec(
+                    machine_name=device_name, command=f"dig +short {root_server} @127.0.0.1", lab_hash=lab.hash
+                )
+                ip = get_output(exec_output_gen).strip()
+                if authority_ip == ip:
+                    logger.log_green("OK")
+                    return test_text, True, "OK"
+                else:
+                    authority_ips.append(ip)
+            reason = f"The dns authorities for domain `{domain}` have the following IPs {authority_ips}"
+            logger.log_red(reason)
+            return test_text, False, reason
+        else:
+            reason_string = f"Device's {device_name} Named is running but answered with {result[0]["status"]} when quering for {domain}"
+            logger.log_red(reason_string)
+            return test_text, False, reason_string
     else:
+        logger.log_yellow(
+            "Running named to get logs. If I get stuck on this command, there is an error in my coding"
+        )
         exec_output_gen = kathara_manager.exec(
             machine_name=device_name,
             command=f"named -d 5 -g",
@@ -342,9 +350,7 @@ def check_dns_authority_for_domain(
 
         reason_list = find_lines_with_string(output, "could not")
         reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
-
         reason_string = "\n".join(reason_list_no_dates)
-
         logger.log_red(reason_string)
         return test_text, False, reason_string
 
@@ -409,7 +415,7 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
         logger.log_green("OK")
         return test_text, True, "OK"
     else:
-        reason = f"`{destination}` not reachable from device `{device_name}`"
+        reason = f"`{destination}` not reachable from device `{device_name}`."
         logger.log_red(reason)
         return test_text, False, reason
 
