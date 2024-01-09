@@ -103,9 +103,9 @@ def check_running_daemon(device_name: str, daemon: str, lab: Lab) -> tuple[str, 
         test_text = f"Checking that {daemon} is running on device `{device_name}`: "
         invert = False
 
+    logger.log(test_text, end="")
     try:
         device = lab.get_machine(device_name)
-        logger.log(test_text, end="")
         output = get_output(
             kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash, command=f"pgrep {daemon}")
         )
@@ -129,12 +129,12 @@ def get_kernel_routes(device_name: str, lab: Lab) -> dict[str, Any]:
 
 
 def check_negative_route(
-    device_name: str, route_to_check_original: str, next_hop: str, routes: list[dict]
+        device_name: str, route_to_check_original: str, next_hop: str, routes: list[dict]
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check_original} "
-        + (f"with nexthop {next_hop} " if next_hop else "")
-        + f"IS NOT in the routing table of device `{device_name}`:\t"
+            f"Check that route {route_to_check_original} "
+            + (f"with nexthop {next_hop} " if next_hop else "")
+            + f"IS NOT in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
 
@@ -153,12 +153,12 @@ def check_negative_route(
 
 
 def check_positive_route(
-    device_name: str, route_to_check_original: str, next_hop: str, routes
+        device_name: str, route_to_check_original: str, next_hop: str, routes
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check_original} "
-        + (f"with nexthop {next_hop} " if next_hop else "")
-        + f"IS in the routing table of device `{device_name}`:\t"
+            f"Check that route {route_to_check_original} "
+            + (f"with nexthop {next_hop} " if next_hop else "")
+            + f"IS in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
 
@@ -251,7 +251,7 @@ def check_bgp_network_command(device: Machine, network: str, lab: Lab) -> tuple[
 
 
 def check_protocol_injection(
-    device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
+        device: Machine, protocol_to_check: str, injected_protocol: str, lab: Lab
 ) -> tuple[str, bool, str]:
     invert: bool = False
     if injected_protocol.startswith("!"):
@@ -293,7 +293,7 @@ def find_device_name_from_ip(ip_mappings, ip_search: str) -> str:
 
 
 def check_dns_authority_for_domain(
-    domain: str, authority_ip: str, device_name: str, lab: Lab
+        domain: str, authority_ip: str, device_name: str, lab: Lab
 ) -> tuple[str, bool, str]:
     test_text = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
@@ -330,29 +330,38 @@ def check_dns_authority_for_domain(
             logger.log_red(reason)
             return test_text, False, reason
         else:
-            reason_string = f"Device's {device_name} Named is running but answered with {result[0]["status"]} when quering for {domain}"
+            reason_string = (f"named on {device_name} is running but answered "
+                             f"with {result[0]['status']} when quering for {domain}")
             logger.log_red(reason_string)
             return test_text, False, reason_string
     else:
-        logger.log_yellow(
-            "Running named to get logs. If I get stuck on this command, there is an error in my coding"
-        )
-        exec_output_gen = kathara_manager.exec(
-            machine_name=device_name,
-            command=f"named -d 5 -g",
-            lab_hash=lab.hash,
-        )
-        output = get_output(exec_output_gen)
 
-        date_pattern = (
-            r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
-        )
+        with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
+            systemctl_lines = find_lines_with_string(startup_file.readline(), "systemctl")
 
-        reason_list = find_lines_with_string(output, "could not")
-        reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
-        reason_string = "\n".join(reason_list_no_dates)
-        logger.log_red(reason_string)
-        return test_text, False, reason_string
+        for line in systemctl_lines:
+            if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
+                exec_output_gen = kathara_manager.exec(
+                    machine_name=device_name,
+                    command=f"named -d 5 -g",
+                    lab_hash=lab.hash,
+                )
+
+                output = get_output(exec_output_gen)
+
+                date_pattern = (
+                    r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
+                )
+
+                reason_list = find_lines_with_string(output, "could not")
+                reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
+                reason_string = "\n".join(reason_list_no_dates)
+                logger.log_red(reason_string)
+                return test_text, False, reason_string
+
+        reason = f"named not started in the startup file of `{device_name}`"
+        logger.log_red(reason)
+        return test_text, False, reason
 
 
 def find_lines_with_string(file_content, search_string):
@@ -421,7 +430,7 @@ def verifying_reachability_from_device(device_name: str, destination: str, lab: 
 
 
 def check_ip_on_interface(
-    device_name: str, iface_num: int, ip: str, iface_info: dict
+        device_name: str, iface_num: int, ip: str, iface_info: dict
 ) -> tuple[str, bool, str]:
     test_text = f"Verifying the IP address ({ip}) assigned to eth{iface_num} of {device_name}:\t"
     logger.log(test_text, end="")
@@ -447,7 +456,7 @@ def check_ip_on_interface(
 
 
 def check_ips_on_interfaces(
-    device_name: str, iface_to_ips: dict[str, str], lab: Lab
+        device_name: str, iface_to_ips: dict[str, str], lab: Lab
 ) -> list[tuple[str, bool, str]]:
     logger.log(f"Checking IPs mapping on device `{device_name}`...")
     results = []
@@ -458,7 +467,10 @@ def check_ips_on_interfaces(
             lab_hash=lab.hash,
         )
     except MachineNotRunningError as e:
-        results.append((f"Trying to get information on {device_name} interfaces:", False, str(e)))
+        message = f"Trying to get information on {device_name} interfaces:"
+        logger.log(message, end="")
+        logger.log_red(str(e))
+        results.append((message, False, str(e)))
         return results
 
     dumped_iface = json.loads(get_output(exec_output_gen))

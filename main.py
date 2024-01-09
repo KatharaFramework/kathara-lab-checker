@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     Setting.get_instance().load_from_dict({"image": configuration["default_image"]})
 
-    logger.log(f"Parsing network scenarios template in: {configuration["structure"]}")
+    logger.log(f"Parsing network scenarios template in: {configuration['structure']}")
     lab_template = LabParser().parse(
         os.path.dirname(configuration["structure"]),
         conf_name=os.path.basename(configuration["structure"]),
@@ -174,27 +174,32 @@ if __name__ == "__main__":
             if application_name == "dns":
                 logger.log("Checking DNS configurations...")
                 for domain, name_servers in application["authoritative"].items():
-                        for ns in name_servers:
-                            device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"], ns)
-                            if device_name:
-                                collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
-                            else:
-                                raise Exception()
-                            
-                            if domain == ".":
-                                logger.log(f"Checking if all the named servers can correctly resolve {ns} as the root nameserver...")
-                                for generic_ns_ip in application["authoritative"]["."]:
-                                    device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"], generic_ns_ip)
-                                    if device_name:
-                                        collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
-                                    else:
-                                        raise Exception()
-                                for local_ns, managed_devices in application["local_ns"].items():
-                                    device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"], local_ns)
-                                    if device_name:
-                                        collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
-                                    else:
-                                        raise Exception()
+                    for ns in name_servers:
+                        device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"], ns)
+                        if device_name:
+                            collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
+                        else:
+                            raise Exception()
+
+                        if domain == ".":
+                            logger.log(f"Checking if all the named servers can correctly "
+                                       f"resolve {ns} as the root nameserver...")
+                            for generic_ns_ip in application["authoritative"]["."]:
+                                device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"],
+                                                                           generic_ns_ip)
+                                if device_name:
+                                    collected_tests.append(lib.check_dns_authority_for_domain(domain, ns,
+                                                                                              device_name, lab))
+                                else:
+                                    raise Exception()
+                            for local_ns, managed_devices in application["local_ns"].items():
+                                device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"],
+                                                                           local_ns)
+                                if device_name:
+                                    collected_tests.append(
+                                        lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
+                                else:
+                                    raise Exception()
 
                 logger.log("Checking local name servers configurations...")
                 for local_ns, managed_devices in application["local_ns"].items():
@@ -253,7 +258,7 @@ if __name__ == "__main__":
         if failed_tests:
             failed_string = ""
             for idx, failed in enumerate(failed_tests):
-                failed_string += f"{(idx+1)}: {failed[2]}\n"
+                failed_string += f"{(idx + 1)}: {failed[2]}\n"
             if len(failed_string) >= 32767:
                 logger.log_red("ERROR: Excel cell too big")
             sheet["E" + str(index + 2)] = failed_string
