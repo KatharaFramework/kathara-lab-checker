@@ -15,6 +15,7 @@ from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
+from Kathara.exceptions import MachineCollisionDomainError
 
 import lib
 import logger
@@ -101,6 +102,9 @@ if __name__ == "__main__":
             CURRENT_LAB = lab
         except IOError as e:
             logger.log_yellow(f"{str(e)} Skipping directory")
+            continue
+        except MachineCollisionDomainError as mcde:
+            logger.log_yellow(f"{str(mcde)} Skipping directory")
             continue
 
         logger.log(f"Undeploying network scenario in case it was running...")
