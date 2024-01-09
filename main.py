@@ -81,7 +81,7 @@ if __name__ == "__main__":
     sheet["D1"] = "Tests Total Number"
     sheet["E1"] = "Problems"
 
-    for index, lab_dir in enumerate(tqdm(os.listdir(labs_path)[:1])):
+    for index, lab_dir in enumerate(tqdm(os.listdir(labs_path))):
         lab_path = os.path.join(labs_path, lab_dir)
         if not os.path.isdir(lab_path):
             continue
@@ -175,7 +175,11 @@ if __name__ == "__main__":
                 logger.log("Checking DNS configurations...")
                 for domain, name_servers in application["authoritative"].items():
                     for ns in name_servers:
-                        collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, "as1r1", lab))
+                        device_name = lib.find_device_name_from_ip(configuration["test"]["ip_mapping"], ns)
+                        if device_name:
+                            collected_tests.append(lib.check_dns_authority_for_domain(domain, ns, device_name, lab))
+                        else:
+                            raise Exception()
 
                 logger.log("Checking local name servers configurations...")
                 for local_ns, managed_devices in application["local_ns"].items():

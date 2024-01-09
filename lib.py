@@ -121,9 +121,9 @@ def check_running_daemon(device_name: str, daemon: str, lab: Lab) -> tuple[str, 
         return test_text, False, str(e)
 
 
-def get_kernel_routes(device: Machine, lab: Lab) -> dict[str, Any]:
+def get_kernel_routes(device_name: str, lab: Lab) -> dict[str, Any]:
     output = get_output(
-        kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash, command="ip -j route")
+        kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j route")
     )
     return json.loads(output)
 
@@ -145,7 +145,7 @@ def check_negative_route(
 
     for route in routes:
         if route["dst"] == route_to_check:
-            reason = f"The route `{route_to_check_original}` IS in the routing table!"
+            reason = f"The route `{route_to_check_original}` IS in the routing table of `{device_name}`."
             logger.log_red(reason)
             return test_text, False, reason
     logger.log_green("OK")
@@ -179,7 +179,7 @@ def check_positive_route(
                     return test_text, False, reason
             logger.log_green("OK")
             return test_text, True, "OK"
-    reason = f"The route {route_to_check_original} IS NOT found in the routing table."
+    reason = f"The route {route_to_check_original} IS NOT found in the routing table of `{device_name}`."
     logger.log_red(reason)
     return test_text, False, reason
 
@@ -197,9 +197,14 @@ def check_kernel_route(device_name: str, route_to_check: str, next_hop: str, rou
 
 def check_kernel_routes(device_name: str, routes_to_check: list[Union[str, tuple[str, str]]], lab: Lab):
     logger.log(f"Checking Routing Table of {device_name}")
-    device = lab.get_machine(device_name)
-    device_routes = get_kernel_routes(device, lab)
     results = []
+
+    try:
+        device_routes = get_kernel_routes(device_name, lab)
+    except MachineNotRunningError as e:
+        results.append((f"Device {device_name} not running:", False, str(e)))
+        return results
+
     for route in routes_to_check:
         next_hop = None
         if type(route) == list:
@@ -273,9 +278,18 @@ def check_protocol_injection(
         logger.log_green("OK")
         return test_text, True, "OK"
     else:
-        reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on device `{device.name}`"
+        reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on `{device.name}`."
         logger.log_red(reason)
     return test_text, False, reason
+
+
+def find_device_name_from_ip(ip_mappings, ip_search: str) -> str:
+    for device, ip_addresses in ip_mappings.items():
+        for _, ip in ip_addresses.items():
+            # Check if the base IP matches (ignoring the CIDR notation)
+            if ip.split("/")[0] == ip_search:
+                return device
+    return None
 
 
 def check_dns_authority_for_domain(
@@ -283,9 +297,14 @@ def check_dns_authority_for_domain(
 ) -> tuple[str, bool, str]:
     test_text = f"Checking that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
-    exec_output_gen = kathara_manager.exec(
-        machine_name=device_name, command=f"dig NS {domain}", lab_hash=lab.hash
-    )
+
+    try:
+        exec_output_gen = kathara_manager.exec(
+            machine_name=device_name, command=f"dig NS {domain} @127.0.0.1", lab_hash=lab.hash
+        )
+    except MachineNotRunningError as e:
+        logger.log_red(str(e))
+        return (test_text, False, str(e))
 
     output = get_output(exec_output_gen)
     if output.startswith("ERROR:"):
@@ -298,7 +317,7 @@ def check_dns_authority_for_domain(
         authority_ips = []
         for root_server in root_servers:
             exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command=f"dig +short {root_server}", lab_hash=lab.hash
+                machine_name=device_name, command=f"dig +short {root_server} @127.0.0.1", lab_hash=lab.hash
             )
             ip = get_output(exec_output_gen).strip()
             if authority_ip == ip:
@@ -310,8 +329,41 @@ def check_dns_authority_for_domain(
         logger.log_red(reason)
         return test_text, False, reason
     else:
-        logger.log_red("\n" + output)
-        return test_text, False, output
+        exec_output_gen = kathara_manager.exec(
+            machine_name=device_name,
+            command=f"named -d 5 -g",
+            lab_hash=lab.hash,
+        )
+        output = get_output(exec_output_gen)
+
+        date_pattern = (
+            r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
+        )
+
+        reason_list = find_lines_with_string(output, "could not")
+        reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
+
+        reason_string = "\n".join(reason_list_no_dates)
+
+        logger.log_red(reason_string)
+        return test_text, False, reason_string
+
+
+def find_lines_with_string(file_content, search_string):
+    """
+    Returns lines from the provided multi-line string that contain the search string.
+
+    :param file_content: A string representing the content of a file (multi-line string).
+    :param search_string: A string to search for in each line of the file content.
+    :return: A list of lines that contain the search string.
+    """
+    # Splitting the string into lines
+    lines = file_content.split("\n")
+
+    # Filtering lines that contain the search string
+    matching_lines = [line for line in lines if search_string in line]
+
+    return matching_lines
 
 
 def check_local_name_server_for_device(local_ns_ip: str, device_name: str, lab: Lab) -> tuple[str, bool, str]:
