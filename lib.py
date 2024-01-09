@@ -295,7 +295,7 @@ def find_device_name_from_ip(ip_mappings, ip_search: str) -> str:
 def check_dns_authority_for_domain(
     domain: str, authority_ip: str, device_name: str, lab: Lab
 ) -> tuple[str, bool, str]:
-    test_text = f"Checking that `{authority_ip}` is the authority for domain `{domain}`:\t"
+    test_text = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`:\t"
     logger.log(test_text, end="")
 
     try:
