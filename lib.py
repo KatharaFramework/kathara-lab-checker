@@ -113,7 +113,7 @@ def check_running_daemon(device_name: str, daemon: str, lab: Lab) -> tuple[str, 
             logger.log_green("OK")
             return test_text, True, "OK"
         else:
-            reason = f"Daemon {daemon} is {'' if invert else 'not '}running on device `{device_name}"
+            reason = f"Daemon {daemon} is {'' if invert else 'not '}running on device `{device_name}`"
             logger.log_red(reason)
             return test_text, False, reason
     except MachineNotFoundError as e:
@@ -147,14 +147,20 @@ def check_negative_route(
 
 
 def check_positive_route(
-    device_name: str, route_to_check: str, next_hop: str, routes
+    device_name: str, route_to_check_original: str, next_hop: str, routes
 ) -> tuple[str, bool, str]:
     test_text = (
-        f"Check that route {route_to_check} "
+        f"Check that route {route_to_check_original} "
         + (f"with nexthop {next_hop} " if next_hop else "")
         + f"IS in the routing table of device `{device_name}`:\t"
     )
     logger.log(test_text, end="")
+
+    if route_to_check_original == "0.0.0.0/0":
+        route_to_check = "default"
+    else:
+        route_to_check = route_to_check_original
+
     for route in routes:
         if route["dst"] == route_to_check:
             if next_hop:
@@ -167,7 +173,7 @@ def check_positive_route(
                     return test_text, False, reason
             logger.log_green("OK")
             return test_text, True, "OK"
-    reason = f"The route {route_to_check} IS NOT found in the routing table."
+    reason = f"The route {route_to_check_original} IS NOT found in the routing table."
     logger.log_red(reason)
     return test_text, False, reason
 

@@ -7,6 +7,7 @@ import sys
 import time
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
+from tqdm import tqdm
 
 from typing import Optional
 
@@ -59,6 +60,12 @@ if __name__ == "__main__":
 
     Setting.get_instance().load_from_dict({"image": configuration["default_image"]})
 
+    logger.log(f"Parsing network scenarios template in: {configuration["structure"]}")
+    lab_template = LabParser().parse(
+        os.path.dirname(configuration["structure"]),
+        conf_name=os.path.basename(configuration["structure"]),
+    )
+
     labs_path = os.path.abspath(configuration["labs_path"])
     logger.log(f"Parsing network scenarios in: {labs_path}")
 
@@ -74,13 +81,13 @@ if __name__ == "__main__":
     sheet["D1"] = "Tests Total Number"
     sheet["E1"] = "Problems"
 
-    for index, lab_dir in enumerate(os.listdir(labs_path)[:2]):
+    for index, lab_dir in enumerate(tqdm(os.listdir(labs_path)[:1])):
         lab_path = os.path.join(labs_path, lab_dir)
         if not os.path.isdir(lab_path):
             continue
 
-        logger.log(f"##################### {lab_path} #####################")
-        sheet["A" + str(index + 2)] = lab_path
+        logger.log(f"##################### {lab_dir} #####################")
+        sheet["A" + str(index + 2)] = lab_dir
 
         test_results_path = os.path.join(lab_path, "test_results")
         if os.path.exists(test_results_path) and not args.no_cache:
@@ -108,7 +115,6 @@ if __name__ == "__main__":
         collected_tests = []
 
         logger.log(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
-        lab_template = LabParser().parse(configuration["structure"])
 
         logger.log("Checking that all devices exist...")
         collected_tests.extend(lib.check_devices(lab, lab_template))
@@ -228,7 +234,7 @@ if __name__ == "__main__":
         if failed_tests:
             failed_string = ""
             for idx, failed in enumerate(failed_tests):
-                failed_string += f"{idx}: {failed[2]}\n"
+                failed_string += f"{(idx+1)}: {failed[2]}\n"
             if len(failed_string) >= 32767:
                 logger.log_red("ERROR: Excel cell too big")
             sheet["E" + str(index + 2)] = failed_string
