@@ -1,0 +1,78 @@
+############ Failed Tests ############################# 0 #################
+Test: as2r2 has bgp peer 20.30.1.2:	
+Result: False
+Reason: The peering between as2r2 and 20.30.1.2 is not up.
+################# 1 #################
+Test: Checking that `1.1.0.2` is the authority for domain `.`:	
+Result: False
+Reason: ;; UDP setup with ::1#53(::1) for . failed: address not available.
+;; UDP setup with ::1#53(::1) for . failed: address not available.
+;; UDP setup with ::1#53(::1) for . failed: address not available.
+;; communications error to 127.0.0.1#53: connection refused
+
+; <<>> DiG 9.18.19-1~deb12u1-Debian <<>> NS .
+;; global options: +cmd
+;; no servers could be reached
+
+
+################# 2 #################
+Test: Checking that `2.1.0.2` is the authority for domain `net`:	
+Result: False
+Reason: ;; UDP setup with ::1#53(::1) for net failed: address not available.
+;; UDP setup with ::1#53(::1) for net failed: address not available.
+;; UDP setup with ::1#53(::1) for net failed: address not available.
+;; communications error to 127.0.0.1#53: connection refused
+
+; <<>> DiG 9.18.19-1~deb12u1-Debian <<>> NS net
+;; global options: +cmd
+;; no servers could be reached
+
+
+################# 3 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as1r1`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as1r1`
+################# 4 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as1r2`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as1r2`
+################# 5 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as2r1`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as2r1`
+################# 6 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as2r2`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as2r2`
+################# 7 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as3r1`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as3r1`
+################# 8 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as3r2`:	
+Result: False
+Reason: `resolv.conf` file not found for device `as3r2`
+################# 9 #################
+Test: Verifying `pc.net` reachability from device `as1r1`:	
+Result: False
+Reason: `pc.net` not reachable from device `as1r1`
+################# 10 #################
+Test: Verifying `pc.net` reachability from device `as1r2`:	
+Result: False
+Reason: `pc.net` not reachable from device `as1r2`
+################# 11 #################
+Test: Verifying `pc.net` reachability from device `as2r1`:	
+Result: False
+Reason: `pc.net` not reachable from device `as2r1`
+################# 12 #################
+Test: Verifying `pc.net` reachability from device `as2r2`:	
+Result: False
+Reason: `pc.net` not reachable from device `as2r2`
+################# 13 #################
+Test: Verifying `pc.net` reachability from device `as3r1`:	
+Result: False
+Reason: `pc.net` not reachable from device `as3r1`
+################# 14 #################
+Test: Verifying `pc.net` reachability from device `as3r2`:	
+Result: False
+Reason: `pc.net` not reachable from device `as3r2`

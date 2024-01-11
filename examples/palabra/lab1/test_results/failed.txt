@@ -1,0 +1,657 @@
+############ Failed Tests ############
+################# 0 #################
+Test: Check existence of `root`
+Result: False
+Reason: Device root not in the network scenario.
+################# 1 #################
+Test: Check existence of `net`
+Result: False
+Reason: Device net not in the network scenario.
+################# 2 #################
+Test: Checking collision domain `A`
+Result: False
+Reason: Devices connected to collision domain A ['as1r1', 'pc'] are different from the one in the template ['root', 'as1r2'].
+################# 3 #################
+Test: Checking collision domain `E`
+Result: False
+Reason: Devices connected to collision domain E ['as2r2', 'dnsnet'] are different from the one in the template ['as2r2', 'net'].
+################# 4 #################
+Test: Checking collision domain `K`
+Result: False
+Reason: Devices connected to collision domain K ['as1r2', 'local'] are different from the one in the template ['as3r2', 'local'].
+################# 5 #################
+Test: Checking collision domain `J`
+Result: False
+Reason: Devices connected to collision domain J ['as3r2', 'dnsroot'] are different from the one in the template ['as3r2', 'pc'].
+################# 6 #################
+Test: Verifying the IP address (10.20.0.1/30) assigned to eth0 of as1r1
+Result: False
+Reason: The interface `eth0` of `as1r1` has the following IP addresses: ['1.0.0.1/24']`.
+################# 7 #################
+Test: Verifying the IP address (1.0.0.1/24) assigned to eth1 of as1r1
+Result: False
+Reason: The interface `eth1` of `as1r1` has the following IP addresses: ['10.20.0.1/30']`.
+################# 8 #################
+Test: Verifying the IP address (1.1.0.1/24) assigned to eth0 of as1r2
+Result: False
+Reason: The interface `eth0` of `as1r2` has the following IP addresses: ['1.1.0.2/24']`.
+################# 9 #################
+Test: Verifying the IP address (1.0.0.2/24) assigned to eth1 of as1r2
+Result: False
+Reason: The interface `eth1` of `as1r2` has the following IP addresses: ['10.20.1.1/30']`.
+################# 10 #################
+Test: Verifying the IP address (10.20.1.1/30) assigned to eth2 of as1r2
+Result: False
+Reason: The interface `eth2` of `as1r2` has the following IP addresses: ['1.2.0.1/24']`.
+################# 11 #################
+Test: Verifying the IP address (3.2.0.1/24) assigned to eth2 of as3r2
+Result: False
+Reason: The interface `eth2` of `as3r2` has the following IP addresses: ['3.1.0.1/24']`.
+################# 12 #################
+Test: Verifying the IP address (3.1.0.1/24) assigned to eth3 of as3r2
+Result: False
+Reason: Interface eth`3` not found on `as3r2`
+################# 13 #################
+Test: Verifying the IP address (1.1.0.2/24) assigned to eth0 of root
+Result: False
+Reason: Interface eth`0` not found on `root`
+################# 14 #################
+Test: Verifying the IP address (2.1.0.2/24) assigned to eth0 of net
+Result: False
+Reason: Interface eth`0` not found on `net`
+################# 15 #################
+Test: Verifying the IP address (3.2.0.2/24) assigned to eth0 of local
+Result: False
+Reason: The interface `eth0` of `local` has the following IP addresses: ['1.2.0.2/24']`.
+################# 16 #################
+Test: Verifying the IP address (3.1.0.2/24) assigned to eth0 of pc
+Result: False
+Reason: The interface `eth0` of `pc` has the following IP addresses: ['1.0.0.2/24']`.
+################# 17 #################
+Test: Verifying `2.1.0.2` reachability from device `as1r1`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as1r1`.
+################# 18 #################
+Test: Verifying `3.1.0.2` reachability from device `as1r1`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as1r1`.
+################# 19 #################
+Test: Verifying `3.2.0.1` reachability from device `as1r1`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as1r1`.
+################# 20 #################
+Test: Verifying `3.2.0.2` reachability from device `as1r1`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as1r1`.
+################# 21 #################
+Test: Verifying `1.0.0.2` reachability from device `as1r2`
+Result: False
+Reason: `1.0.0.2` not reachable from device `as1r2`.
+################# 22 #################
+Test: Verifying `2.1.0.2` reachability from device `as1r2`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as1r2`.
+################# 23 #################
+Test: Verifying `3.1.0.2` reachability from device `as1r2`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as1r2`.
+################# 24 #################
+Test: Verifying `3.2.0.1` reachability from device `as1r2`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as1r2`.
+################# 25 #################
+Test: Verifying `3.2.0.2` reachability from device `as1r2`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as1r2`.
+################# 26 #################
+Test: Verifying `1.0.0.2` reachability from device `as2r1`
+Result: False
+Reason: `1.0.0.2` not reachable from device `as2r1`.
+################# 27 #################
+Test: Verifying `2.1.0.2` reachability from device `as2r1`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as2r1`.
+################# 28 #################
+Test: Verifying `3.1.0.2` reachability from device `as2r1`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as2r1`.
+################# 29 #################
+Test: Verifying `3.2.0.1` reachability from device `as2r1`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as2r1`.
+################# 30 #################
+Test: Verifying `3.2.0.2` reachability from device `as2r1`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as2r1`.
+################# 31 #################
+Test: Verifying `1.0.0.2` reachability from device `as2r2`
+Result: False
+Reason: `1.0.0.2` not reachable from device `as2r2`.
+################# 32 #################
+Test: Verifying `2.1.0.2` reachability from device `as2r2`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as2r2`.
+################# 33 #################
+Test: Verifying `3.1.0.2` reachability from device `as2r2`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as2r2`.
+################# 34 #################
+Test: Verifying `3.2.0.1` reachability from device `as2r2`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as2r2`.
+################# 35 #################
+Test: Verifying `3.2.0.2` reachability from device `as2r2`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as2r2`.
+################# 36 #################
+Test: Verifying `1.0.0.2` reachability from device `as3r1`
+Result: False
+Reason: `1.0.0.2` not reachable from device `as3r1`.
+################# 37 #################
+Test: Verifying `2.1.0.2` reachability from device `as3r1`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as3r1`.
+################# 38 #################
+Test: Verifying `3.1.0.2` reachability from device `as3r1`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as3r1`.
+################# 39 #################
+Test: Verifying `3.2.0.1` reachability from device `as3r1`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as3r1`.
+################# 40 #################
+Test: Verifying `3.2.0.2` reachability from device `as3r1`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as3r1`.
+################# 41 #################
+Test: Verifying `1.0.0.2` reachability from device `as3r2`
+Result: False
+Reason: `1.0.0.2` not reachable from device `as3r2`.
+################# 42 #################
+Test: Verifying `2.1.0.2` reachability from device `as3r2`
+Result: False
+Reason: `2.1.0.2` not reachable from device `as3r2`.
+################# 43 #################
+Test: Verifying `3.1.0.2` reachability from device `as3r2`
+Result: False
+Reason: `3.1.0.2` not reachable from device `as3r2`.
+################# 44 #################
+Test: Verifying `3.2.0.1` reachability from device `as3r2`
+Result: False
+Reason: `3.2.0.1` not reachable from device `as3r2`.
+################# 45 #################
+Test: Verifying `3.2.0.2` reachability from device `as3r2`
+Result: False
+Reason: `3.2.0.2` not reachable from device `as3r2`.
+################# 46 #################
+Test: Verifying `1.0.0.1` reachability from device `local`
+Result: False
+Reason: `1.0.0.1` not reachable from device `local`.
+################# 47 #################
+Test: Verifying `1.0.0.2` reachability from device `local`
+Result: False
+Reason: `1.0.0.2` not reachable from device `local`.
+################# 48 #################
+Test: Verifying `1.1.0.1` reachability from device `local`
+Result: False
+Reason: `1.1.0.1` not reachable from device `local`.
+################# 49 #################
+Test: Verifying `1.1.0.2` reachability from device `local`
+Result: False
+Reason: `1.1.0.2` not reachable from device `local`.
+################# 50 #################
+Test: Verifying `2.0.0.1` reachability from device `local`
+Result: False
+Reason: `2.0.0.1` not reachable from device `local`.
+################# 51 #################
+Test: Verifying `2.0.0.2` reachability from device `local`
+Result: False
+Reason: `2.0.0.2` not reachable from device `local`.
+################# 52 #################
+Test: Verifying `2.1.0.1` reachability from device `local`
+Result: False
+Reason: `2.1.0.1` not reachable from device `local`.
+################# 53 #################
+Test: Verifying `2.1.0.2` reachability from device `local`
+Result: False
+Reason: `2.1.0.2` not reachable from device `local`.
+################# 54 #################
+Test: Verifying `3.0.0.1` reachability from device `local`
+Result: False
+Reason: `3.0.0.1` not reachable from device `local`.
+################# 55 #################
+Test: Verifying `3.0.0.2` reachability from device `local`
+Result: False
+Reason: `3.0.0.2` not reachable from device `local`.
+################# 56 #################
+Test: Verifying `3.1.0.1` reachability from device `local`
+Result: False
+Reason: `3.1.0.1` not reachable from device `local`.
+################# 57 #################
+Test: Verifying `3.1.0.2` reachability from device `local`
+Result: False
+Reason: `3.1.0.2` not reachable from device `local`.
+################# 58 #################
+Test: Verifying `3.2.0.1` reachability from device `local`
+Result: False
+Reason: `3.2.0.1` not reachable from device `local`.
+################# 59 #################
+Test: Verifying `3.2.0.2` reachability from device `local`
+Result: False
+Reason: `3.2.0.2` not reachable from device `local`.
+################# 60 #################
+Test: Verifying `10.20.0.1` reachability from device `local`
+Result: False
+Reason: `10.20.0.1` not reachable from device `local`.
+################# 61 #################
+Test: Verifying `10.20.0.2` reachability from device `local`
+Result: False
+Reason: `10.20.0.2` not reachable from device `local`.
+################# 62 #################
+Test: Verifying `10.20.1.1` reachability from device `local`
+Result: False
+Reason: `10.20.1.1` not reachable from device `local`.
+################# 63 #################
+Test: Verifying `10.20.1.2` reachability from device `local`
+Result: False
+Reason: `10.20.1.2` not reachable from device `local`.
+################# 64 #################
+Test: Verifying `20.30.0.1` reachability from device `local`
+Result: False
+Reason: `20.30.0.1` not reachable from device `local`.
+################# 65 #################
+Test: Verifying `20.30.0.2` reachability from device `local`
+Result: False
+Reason: `20.30.0.2` not reachable from device `local`.
+################# 66 #################
+Test: Verifying `20.30.1.1` reachability from device `local`
+Result: False
+Reason: `20.30.1.1` not reachable from device `local`.
+################# 67 #################
+Test: Verifying `20.30.1.2` reachability from device `local`
+Result: False
+Reason: `20.30.1.2` not reachable from device `local`.
+################# 68 #################
+Test: Verifying `1.0.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 69 #################
+Test: Verifying `1.0.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 70 #################
+Test: Verifying `1.1.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 71 #################
+Test: Verifying `1.1.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 72 #################
+Test: Verifying `2.0.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 73 #################
+Test: Verifying `2.0.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 74 #################
+Test: Verifying `2.1.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 75 #################
+Test: Verifying `2.1.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 76 #################
+Test: Verifying `3.0.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 77 #################
+Test: Verifying `3.0.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 78 #################
+Test: Verifying `3.1.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 79 #################
+Test: Verifying `3.1.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 80 #################
+Test: Verifying `3.2.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 81 #################
+Test: Verifying `3.2.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 82 #################
+Test: Verifying `10.20.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 83 #################
+Test: Verifying `10.20.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 84 #################
+Test: Verifying `10.20.1.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 85 #################
+Test: Verifying `10.20.1.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 86 #################
+Test: Verifying `20.30.0.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 87 #################
+Test: Verifying `20.30.0.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 88 #################
+Test: Verifying `20.30.1.1` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 89 #################
+Test: Verifying `20.30.1.2` reachability from device `root`
+Result: False
+Reason: Device `root` is not running.
+################# 90 #################
+Test: Verifying `1.0.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 91 #################
+Test: Verifying `1.0.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 92 #################
+Test: Verifying `1.1.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 93 #################
+Test: Verifying `1.1.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 94 #################
+Test: Verifying `2.0.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 95 #################
+Test: Verifying `2.0.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 96 #################
+Test: Verifying `2.1.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 97 #################
+Test: Verifying `2.1.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 98 #################
+Test: Verifying `3.0.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 99 #################
+Test: Verifying `3.0.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 100 #################
+Test: Verifying `3.1.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 101 #################
+Test: Verifying `3.1.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 102 #################
+Test: Verifying `3.2.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 103 #################
+Test: Verifying `3.2.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 104 #################
+Test: Verifying `10.20.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 105 #################
+Test: Verifying `10.20.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 106 #################
+Test: Verifying `10.20.1.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 107 #################
+Test: Verifying `10.20.1.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 108 #################
+Test: Verifying `20.30.0.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 109 #################
+Test: Verifying `20.30.0.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 110 #################
+Test: Verifying `20.30.1.1` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 111 #################
+Test: Verifying `20.30.1.2` reachability from device `net`
+Result: False
+Reason: Device `net` is not running.
+################# 112 #################
+Test: Verifying `1.1.0.1` reachability from device `pc`
+Result: False
+Reason: `1.1.0.1` not reachable from device `pc`.
+################# 113 #################
+Test: Verifying `1.1.0.2` reachability from device `pc`
+Result: False
+Reason: `1.1.0.2` not reachable from device `pc`.
+################# 114 #################
+Test: Verifying `2.0.0.1` reachability from device `pc`
+Result: False
+Reason: `2.0.0.1` not reachable from device `pc`.
+################# 115 #################
+Test: Verifying `2.0.0.2` reachability from device `pc`
+Result: False
+Reason: `2.0.0.2` not reachable from device `pc`.
+################# 116 #################
+Test: Verifying `2.1.0.1` reachability from device `pc`
+Result: False
+Reason: `2.1.0.1` not reachable from device `pc`.
+################# 117 #################
+Test: Verifying `2.1.0.2` reachability from device `pc`
+Result: False
+Reason: `2.1.0.2` not reachable from device `pc`.
+################# 118 #################
+Test: Verifying `3.0.0.1` reachability from device `pc`
+Result: False
+Reason: `3.0.0.1` not reachable from device `pc`.
+################# 119 #################
+Test: Verifying `3.0.0.2` reachability from device `pc`
+Result: False
+Reason: `3.0.0.2` not reachable from device `pc`.
+################# 120 #################
+Test: Verifying `3.1.0.1` reachability from device `pc`
+Result: False
+Reason: `3.1.0.1` not reachable from device `pc`.
+################# 121 #################
+Test: Verifying `3.1.0.2` reachability from device `pc`
+Result: False
+Reason: `3.1.0.2` not reachable from device `pc`.
+################# 122 #################
+Test: Verifying `3.2.0.1` reachability from device `pc`
+Result: False
+Reason: `3.2.0.1` not reachable from device `pc`.
+################# 123 #################
+Test: Verifying `3.2.0.2` reachability from device `pc`
+Result: False
+Reason: `3.2.0.2` not reachable from device `pc`.
+################# 124 #################
+Test: Verifying `10.20.0.1` reachability from device `pc`
+Result: False
+Reason: `10.20.0.1` not reachable from device `pc`.
+################# 125 #################
+Test: Verifying `10.20.0.2` reachability from device `pc`
+Result: False
+Reason: `10.20.0.2` not reachable from device `pc`.
+################# 126 #################
+Test: Verifying `10.20.1.1` reachability from device `pc`
+Result: False
+Reason: `10.20.1.1` not reachable from device `pc`.
+################# 127 #################
+Test: Verifying `10.20.1.2` reachability from device `pc`
+Result: False
+Reason: `10.20.1.2` not reachable from device `pc`.
+################# 128 #################
+Test: Verifying `20.30.0.1` reachability from device `pc`
+Result: False
+Reason: `20.30.0.1` not reachable from device `pc`.
+################# 129 #################
+Test: Verifying `20.30.0.2` reachability from device `pc`
+Result: False
+Reason: `20.30.0.2` not reachable from device `pc`.
+################# 130 #################
+Test: Verifying `20.30.1.1` reachability from device `pc`
+Result: False
+Reason: `20.30.1.1` not reachable from device `pc`.
+################# 131 #################
+Test: Verifying `20.30.1.2` reachability from device `pc`
+Result: False
+Reason: `20.30.1.2` not reachable from device `pc`.
+################# 132 #################
+Test: Checking that named is running on device `net`
+Result: False
+Reason: Device net not in the network scenario.
+################# 133 #################
+Test: Checking that watchfrr is not running on device `net`
+Result: False
+Reason: Device net not in the network scenario.
+################# 134 #################
+Test: Checking that named is running on device `root`
+Result: False
+Reason: Device root not in the network scenario.
+################# 135 #################
+Test: Checking that watchfrr is not running on device `root`
+Result: False
+Reason: Device root not in the network scenario.
+################# 136 #################
+Test: as1r1 has bgp peer 1.0.0.2
+Result: False
+Reason: The peering between as1r1 and 1.0.0.2 is not up.
+################# 137 #################
+Test: as1r2 has bgp peer 1.0.0.1
+Result: False
+Reason: The peering between as1r2 and 1.0.0.1 is not up.
+################# 138 #################
+Test: Check that route 3.2.0.0/24 IS in the routing table of device `as3r1`
+Result: False
+Reason: The route 3.2.0.0/24 IS NOT found in the routing table of `as3r1`.
+################# 139 #################
+Test: Check that route 0.0.0.0/0 IS in the routing table of device `root`
+Result: False
+Reason: The route 0.0.0.0/0 IS NOT found in the routing table of `root`.
+################# 140 #################
+Test: Check that route 1.1.0.0/24 IS in the routing table of device `root`
+Result: False
+Reason: The route 1.1.0.0/24 IS NOT found in the routing table of `root`.
+################# 141 #################
+Test: Check that route 0.0.0.0/0 IS in the routing table of device `net`
+Result: False
+Reason: The route 0.0.0.0/0 IS NOT found in the routing table of `net`.
+################# 142 #################
+Test: Check that route 2.1.0.0/24 IS in the routing table of device `net`
+Result: False
+Reason: The route 2.1.0.0/24 IS NOT found in the routing table of `net`.
+################# 143 #################
+Test: Check that route 0.0.0.0/0 IS in the routing table of device `pc`
+Result: False
+Reason: The route 0.0.0.0/0 IS NOT found in the routing table of `pc`.
+################# 144 #################
+Test: Check that route 3.1.0.0/24 IS in the routing table of device `pc`
+Result: False
+Reason: The route 3.1.0.0/24 IS NOT found in the routing table of `pc`.
+################# 145 #################
+Test: Check that route 0.0.0.0/0 IS in the routing table of device `local`
+Result: False
+Reason: The route 0.0.0.0/0 IS NOT found in the routing table of `local`.
+################# 146 #################
+Test: Check that route 3.2.0.0/24 IS in the routing table of device `local`
+Result: False
+Reason: The route 3.2.0.0/24 IS NOT found in the routing table of `local`.
+################# 147 #################
+Test: Checking on `root` that `1.1.0.2` is the authority for domain `.`
+Result: False
+Reason: Device `root` is not running.
+################# 148 #################
+Test: Checking on `root` that `1.1.0.2` is the authority for domain `.`
+Result: False
+Reason: Device `root` is not running.
+################# 149 #################
+Test: Checking on `local` that `1.1.0.2` is the authority for domain `.`
+Result: False
+Reason: named on local is running but answered with REFUSED when quering for .
+################# 150 #################
+Test: Checking on `net` that `2.1.0.2` is the authority for domain `net`
+Result: False
+Reason: Device `net` is not running.
+################# 151 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as1r1`
+Result: False
+Reason: `resolv.conf` file not found for device `as1r1`
+################# 152 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as1r2`
+Result: False
+Reason: `resolv.conf` file not found for device `as1r2`
+################# 153 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as2r1`
+Result: False
+Reason: `resolv.conf` file not found for device `as2r1`
+################# 154 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as2r2`
+Result: False
+Reason: `resolv.conf` file not found for device `as2r2`
+################# 155 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as3r1`
+Result: False
+Reason: `resolv.conf` file not found for device `as3r1`
+################# 156 #################
+Test: Checking that `3.2.0.2` is the local name server for device `as3r2`
+Result: False
+Reason: `resolv.conf` file not found for device `as3r2`
+################# 157 #################
+Test: Checking that `3.2.0.2` is the local name server for device `pc`
+Result: False
+Reason: The local name server for device `pc` has ip `3.2.0.2`
+################# 158 #################
+Test: Verifying `pc.net` reachability from device `as1r1`
+Result: False
+Reason: `pc.net` not reachable from device `as1r1`.
+################# 159 #################
+Test: Verifying `pc.net` reachability from device `as1r2`
+Result: False
+Reason: `pc.net` not reachable from device `as1r2`.
+################# 160 #################
+Test: Verifying `pc.net` reachability from device `as2r1`
+Result: False
+Reason: `pc.net` not reachable from device `as2r1`.
+################# 161 #################
+Test: Verifying `pc.net` reachability from device `as2r2`
+Result: False
+Reason: `pc.net` not reachable from device `as2r2`.
+################# 162 #################
+Test: Verifying `pc.net` reachability from device `as3r1`
+Result: False
+Reason: `pc.net` not reachable from device `as3r1`.
+################# 163 #################
+Test: Verifying `pc.net` reachability from device `as3r2`
+Result: False
+Reason: `pc.net` not reachable from device `as3r2`.

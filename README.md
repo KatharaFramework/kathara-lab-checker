@@ -27,6 +27,19 @@ tool creates a 'test_results' directory (in the network scenario folder) contain
 After all the network scenarios are tested, the tool outputs an excell file `results.xlsx` in the network scenarios
 directory containing all the results for each network scenario, including the reasons for failed tests. 
 
+## Running the example
+The repository already provide a complete example with the results of the tests. 
+- Check the test configuration by inspecting: [configuration_palabra.json](examples/configuration_palabra.json).
+- Check the network topology and requisites: [palabra.pdf](examples/palabra.pdf)
+- Check final results summary: [results.xlsx](examples/palabra/results.xlsx)
+
+You can re-run the example by typing the following command in the root directory of the project:
+```bash
+python3 src/main.py --config examples/configuration_palabra.json --no-cache
+```
+
+The `--no-cache` flag force to repeat already executed tests.
+
 ## How to configure?
 
 In the following you will find the possible values for the configuration file.
