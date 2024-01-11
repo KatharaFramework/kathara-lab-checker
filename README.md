@@ -18,7 +18,7 @@ python3 -m main.py --config <path-to-the-configuration-file>
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
-tool creates a 'test_results' directory (in the network scenario folder) containing three files describing the results:
+tool creates a `test_results` directory (in the network scenario folder) containing three files describing the results:
 
 1. `summary.txt`: A file containing a summary of the results.
 2. `all_tests.txt`: A file containing the results for each test.
