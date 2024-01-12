@@ -1,4 +1,0 @@
-############ Tests Summary  ############
-Total Tests: 399
-Passed Tests: 237/399
-Failed Tests: 162/399

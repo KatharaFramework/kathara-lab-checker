@@ -29,8 +29,7 @@ from checks.applications.dns.LocalNSCheck import LocalNSCheck
 from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.bgp.BGPNetworkCheck import BGPNetworkCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from utils import write_result_to_excel, \
-    reverse_dictionary
+from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
 
@@ -197,35 +196,9 @@ if __name__ == "__main__":
         logger.info(f"Total Tests: {total_tests}")
         logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-        test_results_path = os.path.join(lab.fs_path(), "test_results")
-        if os.path.exists(test_results_path):
-            shutil.rmtree(test_results_path)
-
-        os.mkdir(test_results_path)
-
-        summary_path = os.path.join(test_results_path, "summary.txt")
-        with open(summary_path, "w") as result_file:
-            result_file.write("############ Tests Summary  ############\n")
-            result_file.write(f"Total Tests: {total_tests}\n")
-            result_file.write(f"Passed Tests: {test_results.count(True)}/{total_tests}\n")
-            result_file.write(f"Failed Tests: {test_results.count(False)}/{total_tests}\n")
-
-        all_path = os.path.join(test_results_path, "all_tests.txt")
-        with open(all_path, "w") as result_file:
-            result_file.write("############ All Tests  ############\n")
-            for idx, test in enumerate(test_collector.tests[lab_dir]):
-                result_file.write(f"################# {idx} #################\n")
-                result_file.write(f"Test: {test.description}\nResult: {test.passed}\nReason: {test.reason}\n")
-
-        failed_path = os.path.join(test_results_path, "failed.txt")
-        if failed_tests:
-            logger.info(f"Writing FAILED test report to: {failed_path}")
-            with open(failed_path, "w") as result_file:
-                result_file.write("############ Failed Tests ############\n")
-                for idx, test in enumerate(failed_tests):
-                    result_file.write(f"################# {idx} #################\n")
-                    result_file.write(f"Test: {test.description}\nResult: {test.passed}\nReason: {test.reason}\n")
+        logger.info(f"Writing test report for {lab_dir} in: {lab_path}...")
+        write_result_to_excel(test_collector.tests[lab_dir], lab_path)
 
     if test_collector.tests:
         logger.info(f"Writing All Test Results into: {labs_path}")
-        write_result_to_excel(test_collector, labs_path)
+        write_final_results_to_excel(test_collector, labs_path)
