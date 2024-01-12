@@ -2,7 +2,6 @@ import argparse
 import json
 import logging
 import os
-import shutil
 import signal
 import sys
 import time
@@ -27,7 +26,7 @@ from checks.StartupExistenceCheck import StartupExistenceCheck
 from checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
 from checks.applications.dns.LocalNSCheck import LocalNSCheck
 from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from checks.protocols.bgp.BGPNetworkCheck import BGPNetworkCheck
+from checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
 from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
@@ -159,7 +158,7 @@ if __name__ == "__main__":
                 test_collector.add_check_results(lab_dir, check_results)
 
                 logger.info(f"Checking BGP announces...")
-                check_results = BGPNetworkCheck().run(daemon_test["networks"], lab)
+                check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
                 test_collector.add_check_results(lab_dir, check_results)
 
             if "injections" in daemon_test:
