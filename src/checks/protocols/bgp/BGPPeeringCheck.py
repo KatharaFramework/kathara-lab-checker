@@ -9,7 +9,7 @@ from utils import get_output
 
 
 class BGPPeeringCheck(AbstractCheck):
-    def run(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
+    def check(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
 
         exec_output_gen = kathara_manager.exec(
@@ -29,3 +29,14 @@ class BGPPeeringCheck(AbstractCheck):
         reason = f"The peering between {device_name} and {neighbor} is not up."
 
         return CheckResult(self.description, False, reason)
+
+    def run(self, device_to_neighbours: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+        results = []
+        for device_name, neighbors in device_to_neighbours.items():
+            self.logger.info(f"Checking {device_name} BGP peerings...")
+            for neighbor in neighbors:
+                self.description = f"{device_name} has bgp peer {neighbor}"
+                check_result = self.check(device_name, neighbor, lab)
+                self.logger.info(check_result)
+                results.append(check_result)
+        return results

@@ -1,12 +1,18 @@
 import ipaddress
 
+from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
+
+from utils import get_interfaces_addresses
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
 
 class InterfaceIPCheck(AbstractCheck):
 
-    def run(self, device_name: str, interface_num: int, ip: str, dumped_iface: dict) -> CheckResult:
+    def check(self, device_name: str, interface_num: int, ip: str, dumped_iface: dict) -> CheckResult:
+        self.description = f"Verifying the IP address ({ip}) assigned to eth{interface_num} of {device_name}"
+
         try:
             iface_info = next(filter(lambda x: x["ifname"] == f"eth{interface_num}", dumped_iface))
         except StopIteration:
@@ -31,3 +37,17 @@ class InterfaceIPCheck(AbstractCheck):
         reason = (f"The interface `{iface_info['ifname']}` of `{device_name}` "
                   f"has the following IP addresses: {assigned_ips}`.")
         return CheckResult(self.description, False, reason)
+
+    def run(self, ip_mapping: dict, lab: Lab) -> list[CheckResult]:
+        results = []
+        for device_name, iface_to_ips in ip_mapping.items():
+            self.logger.info(f"Checking IPs for `{device_name}`...")
+            try:
+                dumped_iface = get_interfaces_addresses(device_name, lab)
+                for interface_num, ip in iface_to_ips.items():
+                    check_result = self.check(device_name, int(interface_num), ip, dumped_iface)
+                    self.logger.info(check_result)
+                    results.append(check_result)
+            except MachineNotRunningError:
+                self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
+        return results

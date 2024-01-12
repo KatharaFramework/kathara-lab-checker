@@ -16,21 +16,21 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-import logger
-from checks.KernelRouteCheck import KernelRouteCheck
 from TestCollector import TestCollector
+from checks.CollisionDomainCheck import CollisionDomainCheck
+from checks.DaemonCheck import DaemonCheck
+from checks.DeviceExistenceCheck import DeviceExistenceCheck
+from checks.InterfaceIPCheck import InterfaceIPCheck
+from checks.KernelRouteCheck import KernelRouteCheck
+from checks.ReachabilityCheck import ReachabilityCheck
+from checks.StartupExistenceCheck import StartupExistenceCheck
 from checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
 from checks.applications.dns.LocalNSCheck import LocalNSCheck
 from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.bgp.BGPNetworkCheck import BGPNetworkCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from checks.CollisionDomainCheck import CollisionDomainCheck
-from checks.DaemonCheck import DaemonCheck
-from checks.DeviceExistenceCheck import DeviceExistenceCheck
-from checks.InterfaceIPCheck import InterfaceIPCheck
-from checks.ReachabilityCheck import ReachabilityCheck
-from checks.StartupExistenceCheck import StartupExistenceCheck
-from utils import get_interfaces_addresses, get_kernel_routes, find_device_name_from_ip, write_result_to_excel
+from utils import write_result_to_excel, \
+    reverse_dictionary
 
 CURRENT_LAB: Optional[Lab] = None
 
@@ -98,7 +98,6 @@ if __name__ == "__main__":
             continue
 
         logger.info(f"##################### {lab_dir} #####################")
-        # sheet["A" + str(index + 2)] = lab_dir
 
         test_results_path = os.path.join(lab_path, "test_results")
         if os.path.exists(test_results_path) and not args.no_cache:
@@ -130,155 +129,64 @@ if __name__ == "__main__":
         logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
 
         logger.info("Checking that all devices exist...")
-        for device_name in lab_template.machines.keys():
-            check = DeviceExistenceCheck(f'Check existence of `{device_name}`')
-            check_result = check.run(device_name, lab)
-            logger.info(check_result)
-            test_collector.add_check_result(lab_dir, check_result)
+        check_results = DeviceExistenceCheck().run(list(lab_template.machines.keys()), lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         logger.info("Checking collision domains...")
-        for cd_t in lab_template.links.values():
-            check = CollisionDomainCheck(f"Checking collision domain `{cd_t.name}`")
-            check_result = check.run(cd_t, lab)
-            logger.info(check_result)
-            test_collector.add_check_result(lab_dir, check_result)
+        check_results = CollisionDomainCheck().run(list(lab_template.links.values()), lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         logger.info("Checking that all required startup files exist...")
-        for device_name in configuration["test"]["requiring_startup"]:
-            check = StartupExistenceCheck(f"Check existence of `{device_name}.startup` file")
-            check_result = check.run(device_name, lab)
-            logger.info(check_result)
-            test_collector.add_check_result(lab_dir, check_result)
+        check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
-        if "ip_mapping" in configuration["test"]:
-            for device_name, iface_to_ips in configuration["test"]["ip_mapping"].items():
-                dumped_iface = get_interfaces_addresses(device_name, lab)
-                for interface_num, ip in iface_to_ips.items():
-                    check = InterfaceIPCheck(
-                        f"Verifying the IP address ({ip}) assigned to eth{interface_num} of {device_name}")
-                    check_result = check.run(device_name, int(interface_num), ip, dumped_iface)
-                    logger.info(check_result)
-                    test_collector.add_check_result(lab_dir, check_result)
+        logger.info("Verifying the IP addresses assigned to devices...")
+        check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         logger.info(f"Starting reachability test...")
-        for device_name, ips_to_reach in configuration["test"]["reachability"].items():
-            for destination in ips_to_reach:
-                check = ReachabilityCheck("")
-                check_result = check.run(device_name, destination, lab)
-                logger.info(check_result)
-                test_collector.add_check_result(lab_dir, check_result)
+        check_results = ReachabilityCheck().run(configuration["test"]["reachability"], lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         logger.info(f"Checking if daemons are running...")
-        for device_name, daemons in configuration["test"]["daemons"].items():
-            logger.info(f"Checking if daemons are running on {device_name}")
-            for daemon_name in daemons:
-                check = DaemonCheck("")
-                check_result = check.run(device_name, daemon_name, lab)
-                logger.info(check_result)
-                test_collector.add_check_result(lab_dir, check_result)
+        check_results = DaemonCheck().run(configuration["test"]["daemons"], lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         logger.info("Checking routing daemons configurations...")
         for daemon_name, daemon_test in configuration["test"]["protocols"].items():
             if daemon_name == "bgpd":
                 logger.info(f"Check BGP peerings configurations...")
-                for device_name, neighbors in daemon_test["peerings"].items():
-                    logger.info(f"Check configuration of {device_name}")
-                    device = lab.get_machine(device_name)
-                    for neighbor in neighbors:
-                        check = BGPPeeringCheck(f"{device_name} has bgp peer {neighbor}")
-                        check_result = check.run(device_name, neighbor, lab)
-                        logger.info(check_result)
-                        test_collector.add_check_result(lab_dir, check_result)
+                check_results = BGPPeeringCheck().run(daemon_test["peerings"], lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
                 logger.info(f"Checking BGP announces...")
-                for device_name, networks in daemon_test["networks"].items():
-                    logger.info(f"Checking announces of {device_name}")
-                    for network in networks:
-                        check = BGPNetworkCheck(f"Check bgp network ({network}) for {device_name}")
-                        check_result = check.run(device_name, network, lab)
-                        logger.info(check_result)
-                        test_collector.add_check_result(lab_dir, check_result)
+                check_results = BGPNetworkCheck().run(daemon_test["networks"], lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
-            logger.info(f"Checking protocols injection...")
             if "injections" in daemon_test:
-                for device_name, injected_protocols in daemon_test["injections"].items():
-                    logger.info(f"Checking protocols injection of {device_name}")
-                    for injected_protocol in injected_protocols:
-                        check = ProtocolRedistributionCheck("")
-                        check_result = check.run(device_name, daemon_name, injected_protocol, lab)
-                        logger.info(check_result)
-                        test_collector.add_check_result(lab_dir, check_result)
+                logger.info(f"Checking {daemon_name} protocols redistributions...")
+                check_results = ProtocolRedistributionCheck().run(daemon_name, daemon_test["injections"], lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
         logger.info(f"Checking Routing Tables...")
-        for device_name, routes_to_check in configuration["test"]["kernel_routes"].items():
-            device_routes = get_kernel_routes(device_name, lab)
-            for route_to_check in routes_to_check:
-                next_hop = None
-                if type(route_to_check) == list:
-                    next_hop = route_to_check[1]
-                    route_to_check = route_to_check[0]
-                check = KernelRouteCheck("")
-                check_result = check.run(device_name, route_to_check, next_hop, device_routes)
-                logger.info(check_result)
-                test_collector.add_check_result(lab_dir, check_result)
+        check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
+        test_collector.add_check_results(lab_dir, check_results)
 
         for application_name, application in configuration["test"]["applications"].items():
             if application_name == "dns":
                 logger.info("Checking DNS configurations...")
-                for domain, name_servers in application["authoritative"].items():
-                    for ns in name_servers:
-                        device_name = find_device_name_from_ip(configuration["test"]["ip_mapping"], ns)
-                        if device_name:
-                            check = DNSAuthorityCheck("")
-                            check_result = check.run(domain, ns, device_name, lab)
-                            logger.info(check_result)
-                            test_collector.add_check_result(lab_dir, check_result)
-                        else:
-                            raise Exception("Something missing/wrong in the ip mapping configuration.")
-
-                        if domain == ".":
-                            logger.info(
-                                f"Checking if all the named servers can correctly "
-                                f"resolve {ns} as the root nameserver..."
-                            )
-                            for generic_ns_ip in application["authoritative"]["."]:
-                                device_name = find_device_name_from_ip(
-                                    configuration["test"]["ip_mapping"], generic_ns_ip
-                                )
-                                if device_name:
-                                    check = DNSAuthorityCheck("")
-                                    check_result = check.run(domain, ns, device_name, lab)
-                                    logger.info(check_result)
-                                    test_collector.add_check_result(lab_dir, check_result)
-                                else:
-                                    raise Exception()
-                            for local_ns, managed_devices in application["local_ns"].items():
-                                device_name = find_device_name_from_ip(
-                                    configuration["test"]["ip_mapping"], local_ns
-                                )
-                                if device_name:
-                                    check = DNSAuthorityCheck("")
-                                    check_result = check.run(domain, ns, device_name, lab)
-                                    logger.info(check_result)
-                                    test_collector.add_check_result(lab_dir, check_result)
-                                else:
-                                    raise Exception()
+                check_results = DNSAuthorityCheck().run(application["authoritative"],
+                                                        list(application["local_ns"].keys()),
+                                                        configuration["test"]["ip_mapping"], lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
                 logger.info("Checking local name servers configurations...")
-                for local_ns, managed_devices in application["local_ns"].items():
-                    for device_name in managed_devices:
-                        check = LocalNSCheck("")
-                        check_result = check.run(local_ns, device_name, lab)
-                        logger.info(check_result)
-                        test_collector.add_check_result(lab_dir, check_result)
+                check_results = LocalNSCheck().run(application["local_ns"], lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
-                for dns_name, devices in application["reachability"].items():
-                    logger.info(f"Checking reachability of dns name `{dns_name}` from `{devices}`...")
-                    for device_name in devices:
-                        check = ReachabilityCheck("")
-                        check_result = check.run(device_name, dns_name, lab)
-                        logger.info(check_result)
-                        test_collector.add_check_result(lab_dir, check_result)
+                logger.info(f"Starting reachability test for DNS...")
+                check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
+                test_collector.add_check_results(lab_dir, check_results)
 
         logger.info("Undeploying Network Scenario")
         manager.undeploy_lab(lab=lab)

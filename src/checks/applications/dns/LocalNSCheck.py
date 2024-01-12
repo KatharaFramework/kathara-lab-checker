@@ -10,7 +10,7 @@ from utils import get_output
 
 class LocalNSCheck(AbstractCheck):
 
-    def run(self, local_ns_ip: str, device_name: str, lab: Lab) -> CheckResult:
+    def check(self, local_ns_ip: str, device_name: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
 
         self.description = f"Checking that `{local_ns_ip}` is the local name server for device `{device_name}`"
@@ -32,3 +32,12 @@ class LocalNSCheck(AbstractCheck):
             else:
                 reason = f"The local name server for device `{device_name}` has ip `{local_ns_ip}`"
                 return CheckResult(self.description, False, reason)
+
+    def run(self, local_nameservers_to_devices: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+        results = []
+        for local_ns, managed_devices in local_nameservers_to_devices.items():
+            for device_name in managed_devices:
+                check_result = self.check(local_ns, device_name, lab)
+                self.logger.info(check_result)
+                results.append(check_result)
+        return results

@@ -10,7 +10,7 @@ from utils import get_output
 
 class ProtocolRedistributionCheck(AbstractCheck):
 
-    def run(self, device_name: str, protocol_to_check: str, injected_protocol: str, lab: Lab) -> CheckResult:
+    def check(self, device_name: str, protocol_to_check: str, injected_protocol: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
 
         if injected_protocol.startswith("!"):
@@ -41,3 +41,12 @@ class ProtocolRedistributionCheck(AbstractCheck):
         else:
             reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on `{device_name}`."
         return CheckResult(self.description, False, reason)
+
+    def run(self, protocol, devices_to_redistributed: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+        results = []
+        for device_name, injected_protocols in devices_to_redistributed.items():
+            for injected_protocol in injected_protocols:
+                check_result = self.check(device_name, protocol, injected_protocol, lab)
+                self.logger.info(check_result)
+                results.append(check_result)
+        return results

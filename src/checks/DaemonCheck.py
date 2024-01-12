@@ -9,7 +9,7 @@ from .CheckResult import CheckResult
 
 class DaemonCheck(AbstractCheck):
 
-    def run(self, device_name: str, daemon: str, lab: Lab) -> CheckResult:
+    def check(self, device_name: str, daemon: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
 
         if daemon.startswith("!"):
@@ -32,3 +32,13 @@ class DaemonCheck(AbstractCheck):
                 return CheckResult(self.description, False, reason)
         except MachineNotFoundError as e:
             return CheckResult(self.description, False, str(e))
+
+    def run(self, devices_to_daemons: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+        results = []
+        for device_name, daemons in devices_to_daemons.items():
+            self.logger.info(f"Checking if daemons are running on {device_name}")
+            for daemon_name in daemons:
+                check_result = self.check(device_name, daemon_name, lab)
+                self.logger.info(check_result)
+                results.append(check_result)
+        return results
