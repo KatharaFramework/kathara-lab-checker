@@ -36,7 +36,7 @@ class DaemonCheck(AbstractCheck):
     def run(self, devices_to_daemons: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
         for device_name, daemons in devices_to_daemons.items():
-            self.logger.info(f"Checking if daemons are running on {device_name}")
+            self.logger.info(f"Checking if daemons are running on `{device_name}`...")
             for daemon_name in daemons:
                 check_result = self.check(device_name, daemon_name, lab)
                 self.logger.info(check_result)
