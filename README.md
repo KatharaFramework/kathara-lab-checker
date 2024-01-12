@@ -18,11 +18,12 @@ python3 -m main.py --config <path-to-the-configuration-file>
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
-tool creates a `test_results` directory (in the network scenario folder) containing three files describing the results:
+tool creates a `test_results.xlsx` file in the network scenario directory.
 
-1. `summary.txt`: A file containing a summary of the results.
-2. `all_tests.txt`: A file containing the results for each test.
-3. `failed.txt`: A file containing only the results of failed tests.
+The file is composed of three sheets:
+1. `Summary`: Contains a summary of the results.
+2. `All`: Contains the results for each test.
+3. `Failed`: Contains only the results of failed tests.
 
 After all the network scenarios are tested, the tool outputs an excell file `results.xlsx` in the network scenarios
 directory containing all the results for each network scenario, including the reasons for failed tests. 
