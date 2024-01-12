@@ -1,3 +1,4 @@
+import jc
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
@@ -16,19 +17,23 @@ class ReachabilityCheck(AbstractCheck):
         try:
             exec_output_gen = kathara_manager.exec(
                 machine_name=device_name,
-                command=f"bash -c 'ping -q -n -c 1 {destination}; echo $?'",
+                command=f"bash -c 'ping -q -n -c 1 {destination}'",
                 lab_hash=lab.hash,
             )
         except Exception as e:
             return CheckResult(self.description, False, str(e))
 
-        output = get_output(exec_output_gen)
+        output = get_output(exec_output_gen).replace("ERROR: ", "")
 
-        if output.splitlines()[-1] == "0":
-            return CheckResult(self.description, True, "OK")
-        else:
-            reason = f"`{destination}` not reachable from device `{device_name}`."
-            return CheckResult(self.description, False, reason)
+        try:
+            parsed_output = jc.parse("ping", output)
+            if int(parsed_output['packets_received']) > 0:
+                return CheckResult(self.description, True, "OK")
+            else:
+                reason = f"No answer from `{destination}` to `{device_name}`."
+                return CheckResult(self.description, False, reason)
+        except Exception:
+            return CheckResult(self.description, False, output.strip())
 
     def run(self, devices_to_destinations: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
