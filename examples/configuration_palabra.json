@@ -1,5 +1,4 @@
 {
-	"labs_path": "examples/palabra",
 	"convergence_time": 10,
 	"structure": "examples/palabra/palabra.conf",
 	"default_image": "kathara/frr",
