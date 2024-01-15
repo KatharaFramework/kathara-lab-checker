@@ -19,17 +19,17 @@ from TestCollector import TestCollector
 from checks.CollisionDomainCheck import CollisionDomainCheck
 from checks.DaemonCheck import DaemonCheck
 from checks.DeviceExistenceCheck import DeviceExistenceCheck
+from checks.IPv6EnabledCheck import IPv6EnabledCheck
 from checks.InterfaceIPCheck import InterfaceIPCheck
 from checks.KernelRouteCheck import KernelRouteCheck
 from checks.ReachabilityCheck import ReachabilityCheck
 from checks.StartupExistenceCheck import StartupExistenceCheck
+from checks.SysctlCheck import SysctlCheck
 from checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
 from checks.applications.dns.LocalNSCheck import LocalNSCheck
-from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from checks.IPv6EnabledCheck import IPv6EnabledCheck
-from checks.SysctlCheck import SysctlCheck
 from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
@@ -180,7 +180,8 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
     logger.info(f"Parsing network scenarios in: {labs_path}")
 
     test_collector = TestCollector()
-    for index, lab_name in enumerate(tqdm(os.listdir(labs_path))):
+    for lab_name in tqdm(
+            filter(lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != '.DS_Store', os.listdir(labs_path))):
         test_results = run_on_single_network_scenario(os.path.join(labs_path, lab_name), configuration, lab_template)
 
         if test_results:

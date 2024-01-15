@@ -1,5 +1,6 @@
 import json
 
+from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
@@ -11,10 +12,12 @@ from utils import get_output
 class BGPPeeringCheck(AbstractCheck):
     def check(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
-
-        exec_output_gen = kathara_manager.exec(
-            machine_name=device_name, command="vtysh -e 'show ip bgp summary json'", lab_hash=lab.hash
-        )
+        try:
+            exec_output_gen = kathara_manager.exec(
+                machine_name=device_name, command="vtysh -e 'show ip bgp summary json'", lab_hash=lab.hash
+            )
+        except MachineNotRunningError as e:
+            return CheckResult(self.description, False, str(e))
         output = get_output(exec_output_gen)
 
         if output.startswith("ERROR:") or "exec failed" in output:
