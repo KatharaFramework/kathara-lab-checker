@@ -10,14 +10,14 @@ from .CheckResult import CheckResult
 
 class InterfaceIPCheck(AbstractCheck):
 
-    def check(self, device_name: str, interface_num: int, ip: str, dumped_iface: dict) -> CheckResult:
-        self.description = f"Verifying the IP address ({ip}) assigned to eth{interface_num} of {device_name}"
+    def check(self, device_name: str, interface_name: int, ip: str, dumped_iface: dict) -> CheckResult:
+        self.description = f"Verifying the IP address ({ip}) assigned to {interface_name} of {device_name}"
 
         try:
-            iface_info = next(filter(lambda x: x["ifname"] == f"eth{interface_num}", dumped_iface))
+            iface_info = next(filter(lambda x: x["ifname"] == f"{interface_name}", dumped_iface))
         except StopIteration:
             return CheckResult(self.description, False,
-                               f"Interface eth`{interface_num}` not found on `{device_name}`")
+                               f"Interface `{interface_name}` not found on `{device_name}`")
 
         ip_address = ipaddress.ip_interface(ip)
 
@@ -44,8 +44,8 @@ class InterfaceIPCheck(AbstractCheck):
             self.logger.info(f"Checking IPs for `{device_name}`...")
             try:
                 dumped_iface = get_interfaces_addresses(device_name, lab)
-                for interface_num, ip in iface_to_ips.items():
-                    check_result = self.check(device_name, int(interface_num), ip, dumped_iface)
+                for interface_name, ip in iface_to_ips.items():
+                    check_result = self.check(device_name, interface_name, ip, dumped_iface)
                     self.logger.info(check_result)
                     results.append(check_result)
             except MachineNotRunningError:

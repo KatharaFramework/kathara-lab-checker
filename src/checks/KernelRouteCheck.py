@@ -1,3 +1,5 @@
+from typing import Union
+
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
@@ -53,30 +55,28 @@ class KernelRouteCheck(AbstractCheck):
         reason = f"The route {route_to_check_original} IS NOT found in the routing table of `{device_name}`."
         return CheckResult(self.description, False, reason)
 
-    def check(self, device_name: str, route: str, next_hop: str, kernel_routes: list[dict]) -> CheckResult:
-        negative = False
-        if route.startswith("!"):
-            route = route[1:]
-            negative = True
-        if not negative:
-            return self.check_positive_route(device_name, route, next_hop, kernel_routes)
+    def check(self, device_name: str, expected_routes: list[Union[str, list[str]]], lab) -> CheckResult:
+        device_routes = get_kernel_routes(device_name, lab)
+        device_routes = list(
+            map(lambda x: [x['dst'], [nh['dev'] for nh in x['nexthops']]] if 'nexthops' in x else x['dst'],
+                device_routes))
+        if expected_routes == device_routes:
+            return CheckResult(self.description, True, "OK")
         else:
-            return self.check_negative_route(device_name, route, next_hop, kernel_routes)
+            return CheckResult(self.description, False,
+                               f"The routing table of device `{device_name}` is different from the expected one.\n" +
+                               f"Actual: {device_routes}\n" +
+                               f"Expected: {expected_routes}"
+                               )
 
-    def run(self, devices_to_routes: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]], lab: Lab) -> list[CheckResult]:
         results = []
-        for device_name, routes_to_check in devices_to_routes.items():
+        for device_name, expected_routes in devices_to_routes.items():
             self.logger.info(f"Checking kernel routes for `{device_name}`...")
             try:
-                device_routes = get_kernel_routes(device_name, lab)
-                for route_to_check in routes_to_check:
-                    next_hop = None
-                    if type(route_to_check) == list:
-                        next_hop = route_to_check[1]
-                        route_to_check = route_to_check[0]
-                    check_result = self.check(device_name, route_to_check, next_hop, device_routes)
-                    self.logger.info(check_result)
-                    results.append(check_result)
+                check_result = self.check(device_name, expected_routes, lab)
+                self.logger.info(check_result)
+                results.append(check_result)
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
         return results

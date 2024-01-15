@@ -28,6 +28,8 @@ from checks.applications.dns.LocalNSCheck import LocalNSCheck
 from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from checks.IPv6EnabledCheck import IPv6EnabledCheck
+from checks.SysctlCheck import SysctlCheck
 from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
@@ -99,6 +101,16 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
     test_collector.add_check_results(lab_name, check_results)
 
+    if "ipv6_enabled" in configuration["test"]:
+        logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
+        check_results = IPv6EnabledCheck().run(configuration['test']['ipv6_enabled'], lab)
+        test_collector.add_check_results(lab_name, check_results)
+
+    if "sysctls" in configuration["test"]:
+        logger.info(f"Checking sysctl configurations on devices...")
+        check_results = SysctlCheck().run(configuration['test']['sysctls'], lab)
+        test_collector.add_check_results(lab_name, check_results)
+
     logger.info("Verifying the IP addresses assigned to devices...")
     check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
     test_collector.add_check_results(lab_name, check_results)
@@ -118,9 +130,10 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
             check_results = BGPPeeringCheck().run(daemon_test["peerings"], lab)
             test_collector.add_check_results(lab_name, check_results)
 
-            logger.info(f"Checking BGP announces...")
-            check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
-            test_collector.add_check_results(lab_name, check_results)
+            if "networks" in daemon_test:
+                logger.info(f"Checking BGP announces...")
+                check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
+                test_collector.add_check_results(lab_name, check_results)
 
         if "injections" in daemon_test:
             logger.info(f"Checking {daemon_name} protocols redistributions...")
@@ -131,21 +144,22 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
     test_collector.add_check_results(lab_name, check_results)
 
-    for application_name, application in configuration["test"]["applications"].items():
-        if application_name == "dns":
-            logger.info("Checking DNS configurations...")
-            check_results = DNSAuthorityCheck().run(application["authoritative"],
-                                                    list(application["local_ns"].keys()),
-                                                    configuration["test"]["ip_mapping"], lab)
-            test_collector.add_check_results(lab_name, check_results)
+    if "applications" in configuration["test"]:
+        for application_name, application in configuration["test"]["applications"].items():
+            if application_name == "dns":
+                logger.info("Checking DNS configurations...")
+                check_results = DNSAuthorityCheck().run(application["authoritative"],
+                                                        list(application["local_ns"].keys()),
+                                                        configuration["test"]["ip_mapping"], lab)
+                test_collector.add_check_results(lab_name, check_results)
 
-            logger.info("Checking local name servers configurations...")
-            check_results = LocalNSCheck().run(application["local_ns"], lab)
-            test_collector.add_check_results(lab_name, check_results)
+                logger.info("Checking local name servers configurations...")
+                check_results = LocalNSCheck().run(application["local_ns"], lab)
+                test_collector.add_check_results(lab_name, check_results)
 
-            logger.info(f"Starting reachability test for DNS...")
-            check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
-            test_collector.add_check_results(lab_name, check_results)
+                logger.info(f"Starting reachability test for DNS...")
+                check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
+                test_collector.add_check_results(lab_name, check_results)
 
     if not args.live:
         logger.info("Undeploying Network Scenario")
