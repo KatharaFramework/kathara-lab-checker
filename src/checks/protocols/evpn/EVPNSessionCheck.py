@@ -9,7 +9,7 @@ from checks.CheckResult import CheckResult
 from utils import get_output
 
 
-class EVPNDeviceCheck(AbstractCheck):
+class EVPNSessionCheck(AbstractCheck):
     def check(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
         kathara_manager: Kathara = Kathara.get_instance()
         try:
