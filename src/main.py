@@ -30,6 +30,7 @@ from checks.applications.dns.LocalNSCheck import LocalNSCheck
 from checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from checks.protocols.evpn.EVPNDeviceCheck import EVPNDeviceCheck
 from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
@@ -135,10 +136,18 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
                 check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
                 test_collector.add_check_results(lab_name, check_results)
 
+            if "evpn" in daemon_test:
+                logger.info(f"Checking that EVPN configurations...")
+                evpn_test = daemon_test['evpn']
+                if 'evpn_devices' in evpn_test:
+                    check_results = EVPNDeviceCheck().run(evpn_test['evpn_devices'], lab)
+                    test_collector.add_check_results(lab_name, check_results)
+
         if "injections" in daemon_test:
             logger.info(f"Checking {daemon_name} protocols redistributions...")
             check_results = ProtocolRedistributionCheck().run(daemon_name, daemon_test["injections"], lab)
             test_collector.add_check_results(lab_name, check_results)
+
 
     logger.info(f"Checking Routing Tables...")
     check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
