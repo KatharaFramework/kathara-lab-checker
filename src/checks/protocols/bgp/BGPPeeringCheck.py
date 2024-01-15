@@ -14,7 +14,7 @@ class BGPPeeringCheck(AbstractCheck):
         kathara_manager: Kathara = Kathara.get_instance()
         try:
             exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command="vtysh -e 'show ip bgp summary json'", lab_hash=lab.hash
+                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash
             )
         except MachineNotRunningError as e:
             return CheckResult(self.description, False, str(e))
@@ -24,9 +24,13 @@ class BGPPeeringCheck(AbstractCheck):
             return CheckResult(self.description, False, output)
         output = json.loads(output)
         try:
-            for peer in output["ipv4Unicast"]["peers"]:
-                if neighbor == peer:
-                    return CheckResult(self.description, True, "OK")
+            for peer_name, peer in output["ipv4Unicast"]["peers"].items():
+                if neighbor == peer_name:
+                    if peer['state'] == "Established":
+                        return CheckResult(self.description, True, "OK")
+                    else:
+                        return CheckResult(self.description, False,
+                                           "The session is configured but is in the {peer['state']} state")
         except KeyError:
             pass
         reason = f"The peering between {device_name} and {neighbor} is not up."
