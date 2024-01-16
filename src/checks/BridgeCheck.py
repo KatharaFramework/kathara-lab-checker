@@ -8,152 +8,150 @@ from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
 
+def filter_by_interface_type(interface_type: str, interfaces: list[dict]):
+    return list(filter(lambda x: 'linkinfo' in x and x['linkinfo']['info_kind'] == interface_type, interfaces))
+
+
+def get_interface_by_name(interface_name: str, interfaces: list[dict]):
+    return list(filter(lambda x: x['ifname'] == interface_name, interfaces)).pop()
+
+
+def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
+    return list(filter(lambda x: "linkinfo" in x and "id" in x["linkinfo"]["info_data"] and
+                                 x["linkinfo"]["info_data"]["id"] == int(interface_vni), interfaces)).pop()
+
+
 class BridgeCheck(AbstractCheck):
-    def check(self, device_name: str, list_bridges: list, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
 
-        self.description = f"Checking that a bridge is present on device `{device_name}`"
-
-        try:
-            device = lab.get_machine(device_name)
-            output = get_output(
-                kathara_manager.exec(
-                    machine_name=device.name, lab_hash=lab.hash, command="ip -d -j link show type bridge"
-                )
-            )
-        except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
-
-        output = json.loads(output)
-
-        if len(output) == 0:
-            reason = f"Device {device_name} has no bridges running"
+    def check_bridge_interfaces(self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]):
+        self.description = f"Checking that interfaces {expected_interfaces} are attached to the bridge on `{device_name}`"
+        interface_masters = {}
+        for interface_name in expected_interfaces:
+            actual_iface_info = get_interface_by_name(interface_name, actual_interfaces)
+            if 'master' in actual_iface_info:
+                interface_masters[interface_name] = actual_iface_info['master']
+        masters = len(set(interface_masters.values()))
+        if masters == 1:
+            return CheckResult(self.description, True, "OK")
+        elif masters == 0:
+            return CheckResult(self.description, False, "No interfaces attached to the bridge")
+        elif masters > 1:
+            reason = "Interfaces are attached to different bridges.\n"
+            for interface_name, interface_master in interface_masters.items():
+                reason += f"`{interface_name}` to `{interface_master}`\n"
             return CheckResult(self.description, False, reason)
 
-        if len(output) != len(list_bridges):
-            reason = f"Device {device_name} has {len(output)} bridges running while configuration asserts {len(list_bridges)} bridges running"
+    def check_vlan_tags(self, device_name: str, interface_name: str, interface_configuration: dict,
+                        actual_interface_vlan: dict):
+        self.description = (f"Checking that vlans `{interface_configuration['vlan_tags']}` "
+                            f"are configured on `{interface_name}` of `{device_name}`")
+        expected_vlans = set(interface_configuration['vlan_tags'])
+        actual_vlans = set(map(lambda x: x['vlan'], actual_interface_vlan['vlans']))
+        actual_vlans.remove(1)
+
+        if expected_vlans == actual_vlans:
+            return CheckResult(self.description, True, "OK")
+        else:
+            not_configured = expected_vlans.difference(actual_vlans)
+            reason = f"Vlans `{not_configured}` are not configured on `{interface_name}` of `{device_name}`"
             return CheckResult(self.description, False, reason)
 
-        if len(output) != 1:
-            # TODO: Remove this check when the cycle will be implemented
-            reason = f"Device {device_name} has more than one running bridge"
-            return CheckResult(self.description, False, reason)
+    def check_vxlan_pvid(self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict],
+                         vlans_info: list[dict]):
+        self.description = f"Check that `{device_name}` manages vni `{vni}` with pvid `{pvid}`"
 
-        try:
-            bridge_slaves = get_output(
-                kathara_manager.exec(
-                    machine_name=device.name,
-                    lab_hash=lab.hash,
-                    command="bridge -j link",
-                )
-            )
-        except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
-
-        bridge_slaves = json.loads(bridge_slaves)
-
-        try:
-            interfaces_vlans = get_output(
-                kathara_manager.exec(
-                    machine_name=device.name,
-                    lab_hash=lab.hash,
-                    command="bridge -j vlan",
-                )
-            )
-        except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
-
-        interfaces_vlans = json.loads(interfaces_vlans)
-
-        # From now on I'll use output[0] as current_running_bridge and list_bridges[0] as current_conf_bridge
-        current_conf_bridge = list_bridges[0]
-        current_running_bridge = output[0]
-
-        current_conf_bridge_with_ifaces = self._build_list_interfaces(
-            current_conf_bridge, lab, kathara_manager, device_name
-        )
-
-        if current_running_bridge["linkinfo"]["info_data"]["vlan_filtering"] != 1:
-            reason = f"Device {device_name} has bridge {current_running_bridge['ifname']} without vlan_filtering enabled"
-            return CheckResult(self.description, False, reason)
-
-        current_running_bridge_slaves = list(
-            filter(lambda x: x["master"] == current_running_bridge["ifname"], bridge_slaves)
-        )
-
-        if len(current_running_bridge_slaves) != len(current_conf_bridge):
-            reason = f"Device {device_name} has bridge {current_running_bridge['ifname']} with enslaved {len(bridge_slaves)} ifs but {len(current_conf_bridge)} needed"
-            return CheckResult(self.description, False, reason)
-
-        for bridge_slave in current_running_bridge_slaves:
-            curr_conf = current_conf_bridge_with_ifaces[bridge_slave["ifname"]]
-            if curr_conf:
-                current_vlan = list(
-                    filter(lambda x: x["ifname"] == bridge_slave["ifname"], interfaces_vlans)
-                )[0]["vlans"]
-                if "vlan_tags" in curr_conf:
-                    vlan_list = list(filter(lambda y: "flags" not in y, current_vlan))
-                    vlan_numbers_set = {entry["vlan"] for entry in vlan_list}
-                    configued_vlan_set = set(curr_conf["vlan_tags"])
-                    if configued_vlan_set == vlan_numbers_set:
-                        # return CheckResult(self.description, True, "OK")
-                        pass
+        interface_name = get_inteface_by_vni(vni, actual_interfaces)['ifname']
+        for vlan in vlans_info:
+            if vlan['ifname'] == interface_name:
+                actual_pvid = set(
+                    map(lambda x: x['vlan'], filter(lambda x: 'PVID' in x['flags'], vlan['vlans'])))
+                if pvid:
+                    actual_pvid = actual_pvid.pop()
+                    if actual_pvid == pvid:
+                        return CheckResult(self.description, True, "OK")
                     else:
-                        symmetric_difference = configued_vlan_set ^ vlan_numbers_set
-                        reason = f"Device {device_name} has bridge {current_running_bridge['ifname']} with erros in vlans {symmetric_difference}"
-                        return CheckResult(self.description, False, reason)
-                else:
-                    vlan_pvid = list(filter(lambda y: "flags" in y and "PVID" in y["flags"], current_vlan))[
-                        0
-                    ]["vlan"]
-                    if curr_conf["pvid"] == vlan_pvid:
-                        # return CheckResult(self.description, True, "OK")
-                        pass
-                    else:
-                        reason = f"Device {device_name} has bridge {current_running_bridge['ifname']} with erros in untagged ifaces of vlans"
-                        return CheckResult(self.description, False, reason)
+                        return CheckResult(self.description, False,
+                                           f"VNI `{vni}` found with pvid `{actual_pvid}` (instead of {pvid})")
+        return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
+
+    def check_vlan_pvid(self, device_name: str, interface_name: str, interface_pvid: str,
+                        actual_interface_vlan: dict):
+        self.description = (
+            f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}")
+        pvid = set(
+            map(lambda x: x['vlan'], filter(lambda x: 'PVID' in x['flags'], actual_interface_vlan['vlans'])))
+        if pvid:
+            actual_pvid = pvid.pop()
+            if interface_pvid == actual_pvid:
+                return CheckResult(self.description, True, "OK")
             else:
-                reason = (
-                    f"Device {device_name} has bridge {current_running_bridge['ifname']} with erros in vlans"
-                )
+                reason = (f"`{interface_name}` of `{device_name}` has pvid `{actual_pvid}` "
+                          f"instead of (`{interface_pvid}`)")
                 return CheckResult(self.description, False, reason)
+        else:
+            reason = f"No pvid configured on `{interface_name}` of `{device_name}`"
+            return CheckResult(self.description, False, reason)
 
-        return CheckResult(self.description, True, "OK")
-
-    def run(self, devices_to_daemons: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_bridge_configuration: dict[str, list[dict]], lab: Lab) -> list[CheckResult]:
         results = []
-        for device_name, list_bridges in devices_to_daemons.items():
-            self.logger.info(f"Checking if bridges are configured on `{device_name}`...")
-            check_result = self.check(device_name, list_bridges, lab)
-            self.logger.info(check_result)
-            results.append(check_result)
-        return results
-
-    def _build_list_interfaces(self, config: list, lab: Lab, kathara_manager: Kathara, device_name: str):
-        try:
-            interfaces_vlans = get_output(
-                kathara_manager.exec(
-                    machine_name=device_name,
-                    lab_hash=lab.hash,
-                    command="ip -d -j link show type vxlan",
-                )
-            )
-        except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
-
-        interfaces_vlans = json.loads(interfaces_vlans)
-
-        output = {}
-        for config_element in config:
-            if "vxlan" in config_element:
-                elements = list(
-                    filter(
-                        lambda x: x["linkinfo"]["info_data"]["id"] == int(config_element["vxlan"]),
-                        interfaces_vlans,
+        for device_name, bridges_configuration in devices_to_bridge_configuration.items():
+            self.logger.info(f"Checking bridges configuration on `{device_name}`...")
+            try:
+                ip_link_output = get_output(
+                    Kathara.get_instance().exec(
+                        machine_name=device_name,
+                        lab_hash=lab.hash,
+                        command="ip -d -j link",
                     )
                 )
-                if len(elements) != 1:
-                    raise Exception()
-                config_element["interface"] = elements[0]["ifname"]
-            output[config_element["interface"]] = config_element
-        return output
+                bridge_vlan_output = get_output(
+                    Kathara.get_instance().exec(
+                        machine_name=device_name,
+                        lab_hash=lab.hash,
+                        command="bridge -j vlan",
+                    )
+                )
+            except MachineNotFoundError as e:
+                return [CheckResult(self.description, False, str(e))]
+
+            actual_interfaces = json.loads(ip_link_output)
+
+            actual_vlans = json.loads(bridge_vlan_output)
+
+            for bridge_conf in bridges_configuration:
+                expected_bridge_interfaces = list(bridge_conf['interfaces'].keys())
+                vxlan_interfaces = []
+                vxlan_interfaces_names = []
+                if "vxlan" in bridge_conf:
+                    for vni in bridge_conf['vxlan']:
+                        interface = get_inteface_by_vni(vni, actual_interfaces)
+                        vxlan_interfaces_names.append(interface['ifname'])
+                        vxlan_interfaces.append(interface)
+                    expected_bridge_interfaces.extend(vxlan_interfaces_names)
+
+                check_result = self.check_bridge_interfaces(device_name, expected_bridge_interfaces, actual_interfaces)
+                results.append(check_result)
+                self.logger.info(check_result)
+
+                if check_result.passed:
+                    for interface_name, interface_conf in bridge_conf['interfaces'].items():
+                        actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
+                        if 'vlan_tags' in interface_conf:
+                            check_result = self.check_vlan_tags(device_name, interface_name, interface_conf,
+                                                                actual_interface_vlans)
+                            results.append(check_result)
+                            self.logger.info(check_result)
+
+                        if 'pvid' in interface_conf:
+                            check_result = self.check_vlan_pvid(device_name, interface_name, interface_conf['pvid'],
+                                                                actual_interface_vlans)
+                            results.append(check_result)
+                            self.logger.info(check_result)
+
+                    if 'vxlan' in bridge_conf:
+                        for vni, vni_info in bridge_conf['vxlan'].items():
+                            check_result = self.check_vxlan_pvid(device_name, vni, vni_info['pvid'], actual_interfaces,
+                                                                 actual_vlans)
+                            results.append(check_result)
+                            self.logger.info(check_result)
+        return results
