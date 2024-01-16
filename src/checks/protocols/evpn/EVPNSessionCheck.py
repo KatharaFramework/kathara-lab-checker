@@ -24,15 +24,18 @@ class EVPNSessionCheck(AbstractCheck):
         if output.startswith("ERROR:") or "exec failed" in output:
             return CheckResult(self.description, False, output)
         output = json.loads(output)
-        if 'l2VpnEvpn' in output:
+        if "l2VpnEvpn" in output:
             try:
                 for peer_name, peer in output["l2VpnEvpn"]["peers"].items():
                     if neighbor == peer_name:
-                        if peer['state'] == "Established":
+                        if peer["state"] == "Established":
                             return CheckResult(self.description, True, "OK")
                         else:
-                            return CheckResult(self.description, False,
-                                               "The session is configured but is in the {peer['state']} state")
+                            return CheckResult(
+                                self.description,
+                                False,
+                                f"The session is configured but is in the {peer['state']} state",
+                            )
             except KeyError:
                 pass
             reason = f"The evpn session between {device_name} and {neighbor} is not up."
@@ -40,8 +43,9 @@ class EVPNSessionCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
         else:
-            return CheckResult(self.description, False,
-                               f"`l2VpnEvpn` address family not active for bgp on {device_name}")
+            return CheckResult(
+                self.description, False, f"`l2VpnEvpn` address family not active for bgp on {device_name}"
+            )
 
     def run(self, device_to_neighbours: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
