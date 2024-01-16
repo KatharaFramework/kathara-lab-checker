@@ -33,6 +33,7 @@ from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
 from checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from checks.protocols.evpn.VTEPCheck import VTEPCheck
 from checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from checks.BridgeCheck import BridgeCheck
 from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
@@ -51,7 +52,7 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     manager = Kathara.get_instance()
     test_collector = TestCollector()
 
-    lab_name = lab_path.split('/')[-1]
+    lab_name = lab_path.split("/")[-1]
     if not os.path.isdir(lab_path):
         logger.warning(f"{lab_path} is not a lab directory.")
         return
@@ -106,16 +107,20 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
 
     if "ipv6_enabled" in configuration["test"]:
         logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
-        check_results = IPv6EnabledCheck().run(configuration['test']['ipv6_enabled'], lab)
+        check_results = IPv6EnabledCheck().run(configuration["test"]["ipv6_enabled"], lab)
         test_collector.add_check_results(lab_name, check_results)
 
     if "sysctls" in configuration["test"]:
         logger.info(f"Checking sysctl configurations on devices...")
-        check_results = SysctlCheck().run(configuration['test']['sysctls'], lab)
+        check_results = SysctlCheck().run(configuration["test"]["sysctls"], lab)
         test_collector.add_check_results(lab_name, check_results)
 
     logger.info("Verifying the IP addresses assigned to devices...")
     check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
+    test_collector.add_check_results(lab_name, check_results)
+
+    logger.info("Verifying the bridges inside devices...")
+    check_results = BridgeCheck().run(configuration["test"]["bridges"], lab)
     test_collector.add_check_results(lab_name, check_results)
 
     logger.info(f"Starting reachability test...")
@@ -140,21 +145,22 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
 
             if "evpn" in daemon_test:
                 logger.info(f"Checking EVPN configurations...")
-                evpn_test = daemon_test['evpn']
+                evpn_test = daemon_test["evpn"]
                 for test in evpn_test:
-                    if 'vtep_devices' in test:
+                    if "evpn_sessions" in test:
+                        logger.info(f"Checking EVPN session configuration...")
+                        check_results = EVPNSessionCheck().run(evpn_test["evpn_sessions"], lab)
+                        test_collector.add_check_results(lab_name, check_results)
+
+                    if "vtep_devices" in test:
                         logger.info(f"Checking VTEP devices configuration...")
-                        check_results = VTEPCheck().run(evpn_test['vtep_devices'], lab)
+                        check_results = VTEPCheck().run(evpn_test["vtep_devices"], lab)
                         test_collector.add_check_results(lab_name, check_results)
 
                         logger.info(f"Checking BGP VNIs configurations...")
-                        check_results = AnnouncedVNICheck().run(evpn_test['vtep_devices'], evpn_test['evpn_sessions'],
-                                                                lab)
-                        test_collector.add_check_results(lab_name, check_results)
-
-                    if 'evpn_devices' in test:
-                        logger.info(f"Checking EVPN session configuration...")
-                        check_results = EVPNSessionCheck().run(evpn_test['evpn_sessions'], lab)
+                        check_results = AnnouncedVNICheck().run(
+                            evpn_test["vtep_devices"], evpn_test["evpn_sessions"], lab
+                        )
                         test_collector.add_check_results(lab_name, check_results)
 
         if "injections" in daemon_test:
@@ -170,9 +176,12 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
         for application_name, application in configuration["test"]["applications"].items():
             if application_name == "dns":
                 logger.info("Checking DNS configurations...")
-                check_results = DNSAuthorityCheck().run(application["authoritative"],
-                                                        list(application["local_ns"].keys()),
-                                                        configuration["test"]["ip_mapping"], lab)
+                check_results = DNSAuthorityCheck().run(
+                    application["authoritative"],
+                    list(application["local_ns"].keys()),
+                    configuration["test"]["ip_mapping"],
+                    lab,
+                )
                 test_collector.add_check_results(lab_name, check_results)
 
                 logger.info("Checking local name servers configurations...")
@@ -203,8 +212,13 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-            filter(lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != '.DS_Store', os.listdir(labs_path))):
-        test_results = run_on_single_network_scenario(os.path.join(labs_path, lab_name), configuration, lab_template)
+        filter(
+            lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store", os.listdir(labs_path)
+        )
+    ):
+        test_results = run_on_single_network_scenario(
+            os.path.join(labs_path, lab_name), configuration, lab_template
+        )
 
         if test_results:
             test_collector.tests[lab_name] = test_results.tests[lab_name]
@@ -266,8 +280,7 @@ if __name__ == "__main__":
 
     logger = logging.getLogger("kathara-lab-checker")
 
-    coloredlogs.install(fmt='%(message)s',
-                        level='INFO', logger=logger)
+    coloredlogs.install(fmt="%(message)s", level="INFO", logger=logger)
 
     logger.propagate = False
 
