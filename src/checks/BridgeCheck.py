@@ -24,7 +24,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 class BridgeCheck(AbstractCheck):
 
     def check_bridge_interfaces(self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]):
-        self.description = f"Checking that interfaces {expected_interfaces} are attached to the bridge on `{device_name}`"
+        self.description = (f"Checking that interfaces {expected_interfaces} "
+                            f"are attached to the bridge on `{device_name}`")
         interface_masters = {}
         for interface_name in expected_interfaces:
             actual_iface_info = get_interface_by_name(interface_name, actual_interfaces)
@@ -126,7 +127,7 @@ class BridgeCheck(AbstractCheck):
                     for vni in bridge_conf['vxlan']:
                         try:
                             interface = get_inteface_by_vni(vni, actual_interfaces)
-                        except Exception:
+                        except IndexError:
                             continue
                         vxlan_interfaces_names.append(interface['ifname'])
                         vxlan_interfaces.append(interface)
