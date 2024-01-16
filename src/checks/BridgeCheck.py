@@ -124,7 +124,10 @@ class BridgeCheck(AbstractCheck):
                 vxlan_interfaces_names = []
                 if "vxlan" in bridge_conf:
                     for vni in bridge_conf['vxlan']:
-                        interface = get_inteface_by_vni(vni, actual_interfaces)
+                        try:
+                            interface = get_inteface_by_vni(vni, actual_interfaces)
+                        except Exception:
+                            continue
                         vxlan_interfaces_names.append(interface['ifname'])
                         vxlan_interfaces.append(interface)
                     expected_bridge_interfaces.extend(vxlan_interfaces_names)
