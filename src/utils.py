@@ -93,7 +93,7 @@ def find_lines_with_string(file_content, search_string):
     return matching_lines
 
 
-def write_final_results_to_excel(test_collector: 'TestCollectorPackage.TestCollector', path: str):
+def write_final_results_to_excel(test_collector: "TestCollectorPackage.TestCollector", path: str):
     # Create a new Excel workbook
     workbook = Workbook()
 
@@ -135,7 +135,7 @@ def _write_sheet_row(sheet: Worksheet, column: int, description: str, passed: st
     sheet["C" + str(column + 2)] = reason
 
 
-def write_result_to_excel(check_results: list['CheckResultPackage.CheckResult'], path: str):
+def write_result_to_excel(check_results: list["CheckResultPackage.CheckResult"], path: str):
     # Create a new Excel workbook
     workbook: Workbook = Workbook()
 
@@ -145,10 +145,13 @@ def write_result_to_excel(check_results: list['CheckResultPackage.CheckResult'],
     sheet_summary["B1"] = "Passed Tests"
     sheet_summary["C1"] = "Failed"
 
-    _write_sheet_row(sheet_summary, 0,
-                     str(len(check_results)),
-                     str(len(list(filter(lambda x: x.passed, check_results)))),
-                     str(len(list(filter(lambda x: not x.passed, check_results)))))
+    _write_sheet_row(
+        sheet_summary,
+        0,
+        str(len(check_results)),
+        str(len(list(filter(lambda x: x.passed, check_results)))),
+        str(len(list(filter(lambda x: not x.passed, check_results)))),
+    )
 
     # Select the active sheet
     workbook.create_sheet("All", 1)
@@ -166,11 +169,18 @@ def write_result_to_excel(check_results: list['CheckResultPackage.CheckResult'],
     failed_index = 0
     for index, check_result in enumerate(check_results):
         if not check_result.passed:
-            _write_sheet_row(sheet_failed, failed_index, check_result.description, str(check_result.passed),
-                             check_result.reason)
+            _write_sheet_row(
+                sheet_failed,
+                failed_index,
+                check_result.description,
+                str(check_result.passed),
+                check_result.reason,
+            )
             failed_index += 1
-        _write_sheet_row(sheet_all, index, check_result.description, str(check_result.passed), check_result.reason)
-    workbook.save(os.path.join(path, f"{path.split('/')[-1]}_result.xlsx"))
+        _write_sheet_row(
+            sheet_all, index, check_result.description, str(check_result.passed), check_result.reason
+        )
+    workbook.save(os.path.join(path, f"{os.path.dirname(path)}_result.xlsx"))
 
 
 def reverse_dictionary(dictionary: dict):
@@ -185,17 +195,17 @@ def load_routes_from_expected(expected_routes: list) -> list[dict]:
     routes = []
     for route in expected_routes:
         if type(route) is list:
-            routes.append({'dst': route[0], 'nexthops': set(route[1])})
+            routes.append({"dst": route[0], "nexthops": set(route[1])})
         else:
-            routes.append({'dst': route, 'nexthops': None})
-    return sorted(routes, key=lambda x: x['dst'])
+            routes.append({"dst": route, "nexthops": None})
+    return sorted(routes, key=lambda x: x["dst"])
 
 
 def load_routes_from_ip_route(ip_route_output: list) -> list[dict]:
     routes = []
     for route in ip_route_output:
         nexthops = None
-        if 'nexthops' in route:
-            nexthops = list(map(lambda x: x['dev'], route['nexthops']))
-        routes.append({'dst': route['dst'], 'nexthops': set(nexthops) if nexthops else None})
-    return sorted(routes, key=lambda x: x['dst'])
+        if "nexthops" in route:
+            nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
+        routes.append({"dst": route["dst"], "nexthops": set(nexthops) if nexthops else None})
+    return sorted(routes, key=lambda x: x["dst"])

@@ -16,6 +16,7 @@ from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
 from TestCollector import TestCollector
+from TqdmLoggingHandler import TqdmLoggingHandler
 from checks.CollisionDomainCheck import CollisionDomainCheck
 from checks.DaemonCheck import DaemonCheck
 from checks.DeviceExistenceCheck import DeviceExistenceCheck
@@ -46,18 +47,19 @@ def handler(signum, frame):
     exit(1)
 
 
-def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_template: Lab):
+def run_on_single_network_scenario(labs_path: str, lab_name: str, configuration: dict, lab_template: Lab):
     global CURRENT_LAB
 
     manager = Kathara.get_instance()
     test_collector = TestCollector()
 
-    lab_name = lab_path.split("/")[-1]
+    lab_path = os.path.join(labs_path, lab_name)
+
     if not os.path.isdir(lab_path):
         logger.warning(f"{lab_path} is not a lab directory.")
         return
 
-    test_results_path = os.path.join(lab_path, "test_results")
+    test_results_path = os.path.join(lab_path, f"{lab_name}_result.xlsx")
     if os.path.exists(test_results_path) and not args.no_cache:
         logger.warning("Network scenario already processed, skipping...")
         return
@@ -212,13 +214,14 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-        filter(
-            lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store", os.listdir(labs_path)
+        list(
+            filter(
+                lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                os.listdir(labs_path),
+            )
         )
     ):
-        test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template
-        )
+        test_results = run_on_single_network_scenario(labs_path, lab_name, configuration, lab_template)
 
         if test_results:
             test_collector.tests[lab_name] = test_results.tests[lab_name]
@@ -279,6 +282,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
 
     logger = logging.getLogger("kathara-lab-checker")
+    logger.addHandler(TqdmLoggingHandler())
 
     coloredlogs.install(fmt="%(message)s", level="INFO", logger=logger)
 
