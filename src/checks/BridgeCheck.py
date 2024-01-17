@@ -59,9 +59,13 @@ class BridgeCheck(AbstractCheck):
 
     def check_vxlan_pvid(self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict],
                          vlans_info: list[dict]):
-        self.description = f"Check that `{device_name}` manages vni `{vni}` with pvid `{pvid}`"
+        self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
-        interface_name = get_inteface_by_vni(vni, actual_interfaces)['ifname']
+        try:
+            interface_name = get_inteface_by_vni(vni, actual_interfaces)['ifname']
+        except IndexError:
+            return CheckResult(self.description, False, f"VNI {vni} not configured on `{device_name}`")
+
         for vlan in vlans_info:
             if vlan['ifname'] == interface_name:
                 actual_pvid = set(
@@ -139,18 +143,33 @@ class BridgeCheck(AbstractCheck):
 
                 if check_result.passed:
                     for interface_name, interface_conf in bridge_conf['interfaces'].items():
-                        actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
-                        if 'vlan_tags' in interface_conf:
-                            check_result = self.check_vlan_tags(device_name, interface_name, interface_conf,
-                                                                actual_interface_vlans)
-                            results.append(check_result)
+                        description = f"Getting VLAN info for `{interface_name}` on `{device_name}`"
+                        actual_interface_vlans = None
+                        try:
+                            actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
+                            check_result = CheckResult(description, True, "OK")
                             self.logger.info(check_result)
+                            results.append(check_result)
+                        except IndexError:
+                            check_result = CheckResult(
+                                description,
+                                False,
+                                f"No VLAN found for for `{interface_name}` on `{device_name}`")
+                            self.logger.info(check_result)
+                            results.append(check_result)
 
-                        if 'pvid' in interface_conf:
-                            check_result = self.check_vlan_pvid(device_name, interface_name, interface_conf['pvid'],
-                                                                actual_interface_vlans)
-                            results.append(check_result)
-                            self.logger.info(check_result)
+                        if actual_interface_vlans:
+                            if 'vlan_tags' in interface_conf:
+                                check_result = self.check_vlan_tags(device_name, interface_name, interface_conf,
+                                                                    actual_interface_vlans)
+                                results.append(check_result)
+                                self.logger.info(check_result)
+
+                            if 'pvid' in interface_conf:
+                                check_result = self.check_vlan_pvid(device_name, interface_name, interface_conf['pvid'],
+                                                                    actual_interface_vlans)
+                                results.append(check_result)
+                                self.logger.info(check_result)
 
                     if 'vxlan' in bridge_conf:
                         for vni, vni_info in bridge_conf['vxlan'].items():
