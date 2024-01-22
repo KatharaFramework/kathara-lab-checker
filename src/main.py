@@ -47,13 +47,13 @@ def handler(signum, frame):
     exit(1)
 
 
-def run_on_single_network_scenario(labs_path: str, lab_name: str, configuration: dict, lab_template: Lab):
+def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_template: Lab):
     global CURRENT_LAB
 
     manager = Kathara.get_instance()
     test_collector = TestCollector()
 
-    lab_path = os.path.join(labs_path, lab_name)
+    lab_name = os.path.basename(lab_path)
 
     if not os.path.isdir(lab_path):
         logger.warning(f"{lab_path} is not a lab directory.")
@@ -66,7 +66,7 @@ def run_on_single_network_scenario(labs_path: str, lab_name: str, configuration:
 
     logger.info(f"##################### {lab_name} #####################")
     logger.info(f"Parsing network scenario in: {lab_path}")
-
+    logger.info(f"Network scenario name: {lab_name}")
     try:
         lab = LabParser().parse(lab_path)
         CURRENT_LAB = lab
@@ -221,10 +221,10 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
             )
         )
     ):
-        test_results = run_on_single_network_scenario(labs_path, lab_name, configuration, lab_template)
+        test_results = run_on_single_network_scenario(os.path.join(labs_path, lab_name), configuration, lab_template)
 
         if test_results:
-            test_collector.tests[lab_name] = test_results.tests[lab_name]
+            test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
     if test_collector.tests:
         logger.info(f"Writing All Test Results into: {labs_path}")
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
 
     logger = logging.getLogger("kathara-lab-checker")
-    logger.addHandler(TqdmLoggingHandler())
+    # logger.addHandler(TqdmLoggingHandler())
 
     coloredlogs.install(fmt="%(message)s", level="INFO", logger=logger)
 

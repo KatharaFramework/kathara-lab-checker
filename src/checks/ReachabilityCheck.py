@@ -30,7 +30,7 @@ class ReachabilityCheck(AbstractCheck):
             if int(parsed_output['packets_received']) > 0:
                 return CheckResult(self.description, True, "OK")
             else:
-                reason = f"No answer from `{destination}` to `{device_name}`."
+                reason = f"`{device_name}` does not receive any answer from `{destination}`."
                 return CheckResult(self.description, False, reason)
         except Exception:
             return CheckResult(self.description, False, output.strip())

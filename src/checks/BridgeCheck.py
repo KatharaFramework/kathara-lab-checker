@@ -22,8 +22,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
     return list(
         filter(
             lambda x: "linkinfo" in x
-            and "id" in x["linkinfo"]["info_data"]
-            and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
+                      and "id" in x["linkinfo"]["info_data"]
+                      and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
             interfaces,
         )
     ).pop()
@@ -31,8 +31,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 class BridgeCheck(AbstractCheck):
     def check_bridge_interfaces(
-        self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
-    ):
+            self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
+    ) -> (CheckResult, set[str]):
         self.description = (
             f"Checking that interfaces {expected_interfaces} "
             f"are attached to the same bridge on `{device_name}`"
@@ -53,30 +53,42 @@ class BridgeCheck(AbstractCheck):
         if interfaces_not_found:
             return CheckResult(
                 self.description, False, f"Interfaces `{interfaces_not_found}` are not found on {device_name}"
-            )
+            ), None
         if interfaces_without_bridge:
             return CheckResult(
                 self.description,
                 False,
-                f"Interfaces `{interfaces_not_found}` are not connected to any bridge on {device_name}",
-            )
-        masters = len(set(interface_masters.values()))
-        if masters == 1:
-            return CheckResult(self.description, True, "OK")
-        elif masters == 0:
-            return CheckResult(self.description, False, "No interfaces attached to the bridge")
-        elif masters > 1:
-            reason = "Interfaces are attached to different bridges.\n"
+                f"Interfaces `{interfaces_without_bridge}` are not connected to any bridge on {device_name}",
+            ), None
+        masters = set(interface_masters.values())
+        masters_num = len(masters)
+        if masters_num == 1:
+            master = list(masters)[0]
+            if get_interface_by_name(master, actual_interfaces)["linkinfo"]["info_kind"]:
+                return CheckResult(self.description, True, "OK"), masters
+        elif masters_num == 0:
+            return CheckResult(self.description, False, "No interfaces attached to the bridge"), masters
+        elif masters_num > 1:
+            reason = "Interfaces are not attached to the same bridge.\n"
             for interface_name, interface_master in interface_masters.items():
-                reason += f"`{interface_name}` to `{interface_master}`\n"
-            return CheckResult(self.description, False, reason)
+                master_type = get_interface_by_name(interface_master, actual_interfaces)["linkinfo"]["info_kind"]
+                reason += f"`{interface_name}` to `{interface_master}` (type: {master_type})\n"
+            return CheckResult(self.description, False, reason), masters
+
+    def check_vlan_filtering(self, device_name: str, bridge_info: dict) -> CheckResult:
+        self.description = f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
+        if bridge_info['linkinfo']['info_data']['vlan_filtering'] == 1:
+            return CheckResult(self.description, True, "OK")
+        else:
+            return CheckResult(self.description, True,
+                               f"VLAN filtering not enabled on `{bridge_info['ifname']}` of `{device_name}`")
 
     def check_vlan_tags(
-        self,
-        device_name: str,
-        interface_name: str,
-        interface_configuration: dict,
-        actual_interface_vlan: dict,
+            self,
+            device_name: str,
+            interface_name: str,
+            interface_configuration: dict,
+            actual_interface_vlan: dict,
     ):
         self.description = (
             f"Checking that vlans `{interface_configuration['vlan_tags']}` "
@@ -94,7 +106,7 @@ class BridgeCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def check_vxlan_pvid(
-        self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
+            self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
     ):
         self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
@@ -121,7 +133,7 @@ class BridgeCheck(AbstractCheck):
         return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
 
     def check_vlan_pvid(
-        self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
+            self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
     ):
         self.description = f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}"
         pvid = set(
@@ -134,7 +146,7 @@ class BridgeCheck(AbstractCheck):
             else:
                 reason = (
                     f"`{interface_name}` of `{device_name}` has pvid `{actual_pvid}` "
-                    f"instead of (`{interface_pvid}`)"
+                    f"(instead of `{interface_pvid}`)"
                 )
                 return CheckResult(self.description, False, reason)
         else:
@@ -181,13 +193,18 @@ class BridgeCheck(AbstractCheck):
                         vxlan_interfaces.append(interface)
                     expected_bridge_interfaces.extend(vxlan_interfaces_names)
 
-                check_result = self.check_bridge_interfaces(
+                check_result, masters = self.check_bridge_interfaces(
                     device_name, expected_bridge_interfaces, actual_interfaces
                 )
                 results.append(check_result)
                 self.logger.info(check_result)
 
                 if check_result.passed:
+                    check_result = self.check_vlan_filtering(device_name,
+                                                             get_interface_by_name(masters.pop(), actual_interfaces))
+                    self.logger.info(check_result)
+                    results.append(check_result)
+
                     for interface_name, interface_conf in bridge_conf["interfaces"].items():
                         description = f"Getting VLAN info for `{interface_name}` on `{device_name}`"
                         actual_interface_vlans = None
