@@ -30,8 +30,8 @@ directory containing all the results for each network scenario, including the re
 
 ## Running the example
 The repository already provide a complete example with the results of the tests. 
-- Check the test configuration by inspecting: [configuration_palabra.json](examples/configuration_palabra.json).
-- Check the network topology and requisites: [palabra.pdf](examples/palabra.pdf)
+- Check the test configuration by inspecting: [configuration_palabra.json](examples/palabra/configuration_palabra.json).
+- Check the network topology and requisites: [palabra.pdf](examples/palabra/palabra.pdf)
 - Check final results summary: [results.xlsx](examples/palabra/results.xlsx)
 
 You can re-run the example by typing the following command in the root directory of the project:
