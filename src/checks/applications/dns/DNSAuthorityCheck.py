@@ -11,13 +11,16 @@ from utils import get_output, find_lines_with_string, find_device_name_from_ip
 
 
 class DNSAuthorityCheck(AbstractCheck):
-
-    def check(self, domain: str, authority_ip: str, device_name: str, lab: Lab) -> CheckResult:
-        self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
+    def check(
+        self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
+    ) -> CheckResult:
+        self.description = (
+            f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
+        )
         kathara_manager: Kathara = Kathara.get_instance()
         try:
             exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command=f"dig NS {domain} @127.0.0.1", lab_hash=lab.hash
+                machine_name=device_name, command=f"dig NS {domain} @{device_ip}", lab_hash=lab.hash
             )
         except MachineNotRunningError as e:
             return CheckResult(self.description, False, str(e))
@@ -35,7 +38,7 @@ class DNSAuthorityCheck(AbstractCheck):
                 for root_server in root_servers:
                     exec_output_gen = kathara_manager.exec(
                         machine_name=device_name,
-                        command=f"dig +short {root_server} @127.0.0.1",
+                        command=f"dig +short {root_server} @{device_ip}",
                         lab_hash=lab.hash,
                     )
                     ip = get_output(exec_output_gen).strip()
@@ -76,13 +79,18 @@ class DNSAuthorityCheck(AbstractCheck):
             reason = f"named not started in the startup file of `{device_name}`"
             return CheckResult(self.description, False, reason)
 
-    def run(self, zone_to_authoritative_ips: dict[str, list[str]], local_nameservers: list[str],
-            ip_mapping: dict[str, dict[str, str]], lab: Lab) -> list[CheckResult]:
+    def run(
+        self,
+        zone_to_authoritative_ips: dict[str, list[str]],
+        local_nameservers: list[str],
+        ip_mapping: dict[str, dict[str, str]],
+        lab: Lab,
+    ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():
             self.logger.info(f"Checking authority ip for domain `{domain}`")
             for ns in name_servers:
-                check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), lab)
+                check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns, lab)
                 self.logger.info(check_result)
                 results.append(check_result)
 
@@ -91,12 +99,20 @@ class DNSAuthorityCheck(AbstractCheck):
                         f"Checking if all the named servers can correctly resolve {ns} as the root nameserver..."
                     )
                     for generic_ns_ip in name_servers:
-                        check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, generic_ns_ip), lab)
+                        check_result = self.check(
+                            domain,
+                            ns,
+                            find_device_name_from_ip(ip_mapping, generic_ns_ip),
+                            generic_ns_ip,
+                            lab,
+                        )
                         self.logger.info(check_result)
                         results.append(check_result)
 
                     for local_ns in local_nameservers:
-                        check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, local_ns), lab)
+                        check_result = self.check(
+                            domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns, lab
+                        )
                         self.logger.info(check_result)
                         results.append(check_result)
         return results
