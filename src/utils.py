@@ -180,7 +180,7 @@ def write_result_to_excel(check_results: list["CheckResultPackage.CheckResult"],
         _write_sheet_row(
             sheet_all, index, check_result.description, str(check_result.passed), check_result.reason
         )
-    workbook.save(os.path.join(path, f"{os.path.dirname(path)}_result.xlsx"))
+    workbook.save(os.path.join(path, f"{os.path.basename(path)}_result.xlsx"))
 
 
 def reverse_dictionary(dictionary: dict):
