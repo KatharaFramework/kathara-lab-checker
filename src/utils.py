@@ -191,21 +191,23 @@ def reverse_dictionary(dictionary: dict):
     return reversed_dict
 
 
-def load_routes_from_expected(expected_routes: list) -> list[dict]:
-    routes = []
+def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
+    routes = {}
     for route in expected_routes:
         if type(route) is list:
-            routes.append({"dst": route[0], "nexthops": set(route[1])})
+            routes[route[0]] = set(route[1])
         else:
-            routes.append({"dst": route, "nexthops": None})
-    return sorted(routes, key=lambda x: x["dst"])
+            routes[route] = set()
+    return routes
 
 
-def load_routes_from_ip_route(ip_route_output: list) -> list[dict]:
-    routes = []
+def load_routes_from_ip_route(ip_route_output: list) -> dict[str, set]:
+    routes = {}
     for route in ip_route_output:
         nexthops = None
         if "nexthops" in route:
             nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
-        routes.append({"dst": route["dst"], "nexthops": set(nexthops) if nexthops else None})
-    return sorted(routes, key=lambda x: x["dst"])
+        if "gateway" in route:
+            nexthops = [route["gateway"]]
+        routes[route["dst"]] = set(nexthops) if nexthops else set()
+    return routes
