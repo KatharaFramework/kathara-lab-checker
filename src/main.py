@@ -194,7 +194,7 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
                 check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
                 test_collector.add_check_results(lab_name, check_results)
 
-    if not args.live:
+    if not args.live and not args.keep_open:
         logger.info("Undeploying Network Scenario")
         manager.undeploy_lab(lab=lab)
 
@@ -221,7 +221,9 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
             )
         )
     ):
-        test_results = run_on_single_network_scenario(os.path.join(labs_path, lab_name), configuration, lab_template)
+        test_results = run_on_single_network_scenario(
+            os.path.join(labs_path, lab_name), configuration, lab_template
+        )
 
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
@@ -257,6 +259,14 @@ def parse_arguments(argv):
         action="store_true",
         default=False,
         help="Do not deploy/undeploy the network scenarios",
+    )
+
+    parser.add_argument(
+        "--keep-open",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Do not undeploy the network scenarios",
     )
 
     group = parser.add_mutually_exclusive_group(required=True)
