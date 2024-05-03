@@ -14,10 +14,10 @@ class ReachabilityCheck(AbstractCheck):
 
         if destination.startswith("!"):
             destination = destination[1:]
-            self.description = f"Verifying `{destination}` reachable from device `{device_name}`"
+            self.description = f"Verifying `{destination}` not reachable from device `{device_name}`"
             invert = True
         else:
-            self.description = f"Verifying `{destination}` not reachable from device `{device_name}`"
+            self.description = f"Verifying `{destination}` reachable from device `{device_name}`"
             invert = False
 
         try:
@@ -34,9 +34,10 @@ class ReachabilityCheck(AbstractCheck):
         try:
             parsed_output = jc.parse("ping", output)
             if int(parsed_output['packets_received']) > 0:
+                reason = "OK" if invert else f"`{device_name}` can reach `{destination}`."
                 return CheckResult(self.description, invert ^ True, "OK")
             else:
-                reason = f"`{device_name}` does not receive any answer from `{destination}`."
+                reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
                 return CheckResult(self.description, invert ^ False, reason)
         except Exception:
             return CheckResult(self.description, False, output.strip())
