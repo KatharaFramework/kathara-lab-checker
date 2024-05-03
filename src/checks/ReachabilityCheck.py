@@ -34,8 +34,8 @@ class ReachabilityCheck(AbstractCheck):
         try:
             parsed_output = jc.parse("ping", output)
             if int(parsed_output['packets_received']) > 0:
-                reason = "OK" if invert else f"`{device_name}` can reach `{destination}`."
-                return CheckResult(self.description, invert ^ True, "OK")
+                reason = f"`{device_name}` can reach `{destination}`." if invert else "OK"
+                return CheckResult(self.description, invert ^ True, reason)
             else:
                 reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
                 return CheckResult(self.description, invert ^ False, reason)
