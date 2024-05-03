@@ -203,8 +203,9 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     logger.info(f"Total Tests: {total_tests}")
     logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-    logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
-    write_result_to_excel(test_collector.tests[lab_name], lab_path)
+    if not args.skip_report:
+        logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
+        write_result_to_excel(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
@@ -228,7 +229,7 @@ def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_t
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests:
+    if test_collector.tests and not args.skip_report:
         logger.info(f"Writing All Test Results into: {labs_path}")
         write_final_results_to_excel(test_collector, labs_path)
 
@@ -281,6 +282,14 @@ def parse_arguments(argv):
         "--labs",
         required=False,
         help="The path to a directory containing multiple network scenarios to check with the same configuration",
+    )
+
+    parser.add_argument(
+        "--skip-report",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Skip the generation of the report",
     )
 
     return parser.parse_args(argv)
