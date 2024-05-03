@@ -10,9 +10,15 @@ from .CheckResult import CheckResult
 class ReachabilityCheck(AbstractCheck):
 
     def check(self, device_name: str, destination: str, lab: Lab) -> CheckResult:
-        self.description = f"Verifying `{destination}` reachability from device `{device_name}`"
-
         kathara_manager: Kathara = Kathara.get_instance()
+
+        if destination.startswith("!"):
+            destination = destination[1:]
+            self.description = f"Verifying `{destination}` not reachable from device `{device_name}`"
+            invert = True
+        else:
+            self.description = f"Verifying `{destination}` reachable from device `{device_name}`"
+            invert = False
 
         try:
             exec_output_gen = kathara_manager.exec(
@@ -21,17 +27,18 @@ class ReachabilityCheck(AbstractCheck):
                 lab_hash=lab.hash,
             )
         except Exception as e:
-            return CheckResult(self.description, False, str(e))
+            return CheckResult(self.description, invert ^ False, str(e))
 
         output = get_output(exec_output_gen).replace("ERROR: ", "")
 
         try:
             parsed_output = jc.parse("ping", output)
             if int(parsed_output['packets_received']) > 0:
-                return CheckResult(self.description, True, "OK")
+                reason = f"`{device_name}` can reach `{destination}`." if invert else "OK"
+                return CheckResult(self.description, invert ^ True, reason)
             else:
-                reason = f"`{device_name}` does not receive any answer from `{destination}`."
-                return CheckResult(self.description, False, reason)
+                reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
+                return CheckResult(self.description, invert ^ False, reason)
         except Exception:
             return CheckResult(self.description, False, output.strip())
 
