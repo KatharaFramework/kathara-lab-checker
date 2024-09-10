@@ -117,62 +117,68 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
         check_results = SysctlCheck().run(configuration["test"]["sysctls"], lab)
         test_collector.add_check_results(lab_name, check_results)
 
-    logger.info("Verifying the IP addresses assigned to devices...")
-    check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "ip_mapping" in configuration["test"]:
+        logger.info("Verifying the IP addresses assigned to devices...")
+        check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
-    logger.info("Verifying the bridges inside devices...")
-    check_results = BridgeCheck().run(configuration["test"]["bridges"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "bridges" in configuration["test"]:
+        logger.info("Verifying the bridges inside devices...")
+        check_results = BridgeCheck().run(configuration["test"]["bridges"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
-    logger.info(f"Starting reachability test...")
-    check_results = ReachabilityCheck().run(configuration["test"]["reachability"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "reachability" in configuration["test"]:
+        logger.info(f"Starting reachability test...")
+        check_results = ReachabilityCheck().run(configuration["test"]["reachability"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
-    logger.info(f"Checking if daemons are running...")
-    check_results = DaemonCheck().run(configuration["test"]["daemons"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "daemons" in configuration["test"]:
+        logger.info(f"Checking if daemons are running...")
+        check_results = DaemonCheck().run(configuration["test"]["daemons"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
-    logger.info("Checking routing daemons configurations...")
-    for daemon_name, daemon_test in configuration["test"]["protocols"].items():
-        if daemon_name == "bgpd":
-            logger.info(f"Check BGP peerings configurations...")
-            check_results = BGPPeeringCheck().run(daemon_test["peerings"], lab)
-            test_collector.add_check_results(lab_name, check_results)
-
-            if "networks" in daemon_test:
-                logger.info(f"Checking BGP announces...")
-                check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
+    if "protocols" in configuration["test"]:
+        logger.info("Checking routing daemons configurations...")
+        for daemon_name, daemon_test in configuration["test"]["protocols"].items():
+            if daemon_name == "bgpd":
+                logger.info(f"Check BGP peerings configurations...")
+                check_results = BGPPeeringCheck().run(daemon_test["peerings"], lab)
                 test_collector.add_check_results(lab_name, check_results)
 
-            if "evpn" in daemon_test:
-                logger.info(f"Checking EVPN configurations...")
-                evpn_test = daemon_test["evpn"]
-                for test in evpn_test:
-                    if "evpn_sessions" in test:
-                        logger.info(f"Checking EVPN session configuration...")
-                        check_results = EVPNSessionCheck().run(evpn_test["evpn_sessions"], lab)
-                        test_collector.add_check_results(lab_name, check_results)
+                if "networks" in daemon_test:
+                    logger.info(f"Checking BGP announces...")
+                    check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
+                    test_collector.add_check_results(lab_name, check_results)
 
-                    if "vtep_devices" in test:
-                        logger.info(f"Checking VTEP devices configuration...")
-                        check_results = VTEPCheck().run(evpn_test["vtep_devices"], lab)
-                        test_collector.add_check_results(lab_name, check_results)
+                if "evpn" in daemon_test:
+                    logger.info(f"Checking EVPN configurations...")
+                    evpn_test = daemon_test["evpn"]
+                    for test in evpn_test:
+                        if "evpn_sessions" in test:
+                            logger.info(f"Checking EVPN session configuration...")
+                            check_results = EVPNSessionCheck().run(evpn_test["evpn_sessions"], lab)
+                            test_collector.add_check_results(lab_name, check_results)
 
-                        logger.info(f"Checking BGP VNIs configurations...")
-                        check_results = AnnouncedVNICheck().run(
-                            evpn_test["vtep_devices"], evpn_test["evpn_sessions"], lab
-                        )
-                        test_collector.add_check_results(lab_name, check_results)
+                        if "vtep_devices" in test:
+                            logger.info(f"Checking VTEP devices configuration...")
+                            check_results = VTEPCheck().run(evpn_test["vtep_devices"], lab)
+                            test_collector.add_check_results(lab_name, check_results)
 
-        if "injections" in daemon_test:
-            logger.info(f"Checking {daemon_name} protocols redistributions...")
-            check_results = ProtocolRedistributionCheck().run(daemon_name, daemon_test["injections"], lab)
-            test_collector.add_check_results(lab_name, check_results)
+                            logger.info(f"Checking BGP VNIs configurations...")
+                            check_results = AnnouncedVNICheck().run(
+                                evpn_test["vtep_devices"], evpn_test["evpn_sessions"], lab
+                            )
+                            test_collector.add_check_results(lab_name, check_results)
 
-    logger.info(f"Checking Routing Tables...")
-    check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+            if "injections" in daemon_test:
+                logger.info(f"Checking {daemon_name} protocols redistributions...")
+                check_results = ProtocolRedistributionCheck().run(daemon_name, daemon_test["injections"], lab)
+                test_collector.add_check_results(lab_name, check_results)
+
+    if "kernel_routes" in configuration["test"]:
+        logger.info(f"Checking Routing Tables...")
+        check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
     if "applications" in configuration["test"]:
         for application_name, application in configuration["test"]["applications"].items():
