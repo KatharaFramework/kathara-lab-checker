@@ -204,10 +204,14 @@ def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
 def load_routes_from_ip_route(ip_route_output: list) -> dict[str, set]:
     routes = {}
     for route in ip_route_output:
+
+        dst = route["dst"]
+        if dst == "default":
+            dst = "0.0.0.0/0"
         nexthops = None
         if "nexthops" in route:
             nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
         if "gateway" in route:
             nexthops = [route["gateway"]]
-        routes[route["dst"]] = set(nexthops) if nexthops else set()
+        routes[dst] = set(nexthops) if nexthops else set()
     return routes

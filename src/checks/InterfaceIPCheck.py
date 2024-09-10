@@ -10,7 +10,8 @@ from .CheckResult import CheckResult
 
 class InterfaceIPCheck(AbstractCheck):
 
-    def check(self, device_name: str, interface_name: int, ip: str, dumped_iface: dict) -> CheckResult:
+    def check(self, device_name: str, interface_number: int, ip: str, dumped_iface: dict) -> CheckResult:
+        interface_name = f"eth{interface_number}"
         self.description = f"Verifying the IP address ({ip}) assigned to {interface_name} of {device_name}"
 
         try:
@@ -44,8 +45,8 @@ class InterfaceIPCheck(AbstractCheck):
             self.logger.info(f"Checking IPs for `{device_name}`...")
             try:
                 dumped_iface = get_interfaces_addresses(device_name, lab)
-                for interface_name, ip in iface_to_ips.items():
-                    check_result = self.check(device_name, interface_name, ip, dumped_iface)
+                for interface_number, ip in iface_to_ips.items():
+                    check_result = self.check(device_name, interface_number, ip, dumped_iface)
                     self.logger.info(check_result)
                     results.append(check_result)
             except MachineNotRunningError:
