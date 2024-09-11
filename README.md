@@ -8,13 +8,20 @@ tests.
 
 The tool is very effective for automatically correct student homeworks, exams and network scenario configurations.
 
+## Installation
+
+```bash
+python3 -m pip install kathara-lab-checker
+```
+The Python version MUST be `>=3.11`.
+
 ## How does it work?
 
 The Kathará Lab Checker takes in input a configuration file specifying the tests to perform and the expected values.
 To run the tool you only need to run the `main.py` passing the desired configuration file.
 
 ```bash
-python3 -m main.py --config <path-to-the-configuration-file>
+python3 -m kathara-lab-checker --config <path-to-the-configuration-file>
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
@@ -40,7 +47,7 @@ The repository already provide a complete example with the results of the tests.
 You can re-run the example by typing the following command in the root directory of the project:
 
 ```bash
-python3 src/main.py --config examples/configuration_palabra.json --no-cache
+python3 -m kathara-lab-checker --config examples/configuration_palabra.json --no-cache
 ```
 
 The `--no-cache` flag force to repeat already executed tests.
