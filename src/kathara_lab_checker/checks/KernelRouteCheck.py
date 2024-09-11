@@ -3,7 +3,7 @@ from typing import Union
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
-from utils import get_kernel_routes, load_routes_from_ip_route, load_routes_from_expected
+from kathara_lab_checker.utils import get_kernel_routes, load_routes_from_ip_route, load_routes_from_expected
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 

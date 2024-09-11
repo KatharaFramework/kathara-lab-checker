@@ -1,0 +1,44 @@
+[project]
+name = "kathara-lab-checker"
+version = "0.1.0"
+description = "Tool to automatically check Kathará network scenarios based on a configuration file."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+keywords = ["Kathara", "NETWORK-EMULATION"]
+authors = [
+    { name = "Kathara Framework", email = "contact@kathara.org" }
+]
+
+maintainers = [
+    { name = "Tommaso Caiazzi", email = "contact@kathara.org" }
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Intended Audience :: Telecommunications Industry",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3.11"
+]
+
+dependencies = [
+    "kathara>=3.7.7",
+    "jc>=1.24.0",
+    "openpyxl>=3.1.2",
+    "tqdm>=4",
+    "coloredlogs~=15.0.1"
+]
+
+[project.scripts]
+kathara-lab-checker = "main:main"
+
+[project.urls]
+"Bug Reports" = "https://github.com/KatharaFramework/kathara-lab-checker/issues"
+"Source" = "https://github.com/KatharaFramework/kathara-lab-checker"
+
+[build-system]
+requires = ["setuptools>=61.2", "wheel"]
+build-backend = "setuptools.build_meta"

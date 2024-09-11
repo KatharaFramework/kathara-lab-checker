@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import json
 import logging
@@ -15,44 +16,48 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from TestCollector import TestCollector
-from TqdmLoggingHandler import TqdmLoggingHandler
-from checks.CollisionDomainCheck import CollisionDomainCheck
-from checks.DaemonCheck import DaemonCheck
-from checks.DeviceExistenceCheck import DeviceExistenceCheck
-from checks.IPv6EnabledCheck import IPv6EnabledCheck
-from checks.InterfaceIPCheck import InterfaceIPCheck
-from checks.KernelRouteCheck import KernelRouteCheck
-from checks.ReachabilityCheck import ReachabilityCheck
-from checks.StartupExistenceCheck import StartupExistenceCheck
-from checks.SysctlCheck import SysctlCheck
-from checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from checks.applications.dns.LocalNSCheck import LocalNSCheck
-from checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from checks.protocols.evpn.VTEPCheck import VTEPCheck
-from checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from checks.BridgeCheck import BridgeCheck
-from utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
+from kathara_lab_checker.TestCollector import TestCollector
+from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
+from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
+from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
+from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
+from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
+from kathara_lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
+from kathara_lab_checker.checks.KernelRouteCheck import KernelRouteCheck
+from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
+from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
+from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
+from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
+from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
+from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
+from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
 CURRENT_LAB: Optional[Lab] = None
 
 
 def handler(signum, frame):
+    logger = logging.getLogger("kathara-lab-checker")
     if CURRENT_LAB and not args.live:
         logger.warning(f"\nCtrl-C was pressed. Undeploying current lab in: {CURRENT_LAB.fs_path()}")
         Kathara.get_instance().undeploy_lab(lab=CURRENT_LAB)
     exit(1)
 
 
-def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_template: Lab):
+def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_template: Lab,
+                                   no_cache: bool = False, live: bool = False, keep_open: bool = False,
+                                   skip_report: bool = False):
     global CURRENT_LAB
+    logger = logging.getLogger("kathara-lab-checker")
 
     manager = Kathara.get_instance()
     test_collector = TestCollector()
 
+    lab_path = os.path.abspath(lab_path)
     lab_name = os.path.basename(lab_path)
 
     if not os.path.isdir(lab_path):
@@ -60,7 +65,7 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
         return
 
     test_results_path = os.path.join(lab_path, f"{lab_name}_result.xlsx")
-    if os.path.exists(test_results_path) and not args.no_cache:
+    if os.path.exists(test_results_path) and not no_cache:
         logger.warning("Network scenario already processed, skipping...")
         return
 
@@ -77,7 +82,7 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
         logger.warning(f"{str(e)} Skipping directory")
         return
 
-    if not args.live:
+    if not live:
         logger.info(f"Undeploying network scenario in case it was running...")
         manager.undeploy_lab(lab=lab)
         logger.info(f"Deploying network scenario...")
@@ -200,7 +205,7 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
                 check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
                 test_collector.add_check_results(lab_name, check_results)
 
-    if not args.live and not args.keep_open:
+    if not live and not keep_open:
         logger.info("Undeploying Network Scenario")
         manager.undeploy_lab(lab=lab)
 
@@ -209,38 +214,42 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     logger.info(f"Total Tests: {total_tests}")
     logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-    if not args.skip_report:
+    if not skip_report:
         logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
         write_result_to_excel(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
 
-def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_template: Lab):
+def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_template: Lab, no_cache: bool = False,
+                                      live: bool = False, keep_open: bool = False, skip_report: bool = False):
+    logger = logging.getLogger("kathara-lab-checker")
+    labs_path = os.path.abspath(labs_path)
+
     logger.info(f"Parsing network scenarios in: {labs_path}")
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-        list(
-            filter(
-                lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                os.listdir(labs_path),
+            list(
+                filter(
+                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                    os.listdir(labs_path),
+                )
             )
-        )
     ):
         test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template
+            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
         )
 
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests and not args.skip_report:
+    if test_collector.tests and not skip_report:
         logger.info(f"Writing All Test Results into: {labs_path}")
         write_final_results_to_excel(test_collector, labs_path)
 
 
-def parse_arguments(argv):
+def parse_arguments():
     parser = argparse.ArgumentParser(
         description="A tool for automatically check Kathará network scenarios", add_help=True
     )
@@ -298,11 +307,11 @@ def parse_arguments(argv):
         help="Skip the generation of the report",
     )
 
-    return parser.parse_args(argv)
+    return parser.parse_args()
 
 
-if __name__ == "__main__":
-    args = parse_arguments(sys.argv[1:])
+def main():
+    args = parse_arguments()
 
     signal.signal(signal.SIGINT, handler)
 
@@ -326,6 +335,12 @@ if __name__ == "__main__":
     )
 
     if args.lab:
-        run_on_single_network_scenario(os.path.abspath(args.lab), conf, template_lab)
+        run_on_single_network_scenario(args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open,
+                                       args.skip_report)
     elif args.labs:
-        run_on_multiple_network_scenarios(os.path.abspath(args.labs), conf, template_lab)
+        run_on_multiple_network_scenarios(args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open,
+                                          args.skip_report)
+
+
+if __name__ == "__main__":
+    main()

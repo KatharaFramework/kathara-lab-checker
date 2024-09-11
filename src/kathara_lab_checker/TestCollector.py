@@ -1,6 +1,3 @@
-from checks import CheckResult as CheckResultPackage
-
-
 class TestCollector:
     def __init__(self):
         self.tests = {}

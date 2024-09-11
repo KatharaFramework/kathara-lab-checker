@@ -9,9 +9,6 @@ from openpyxl.styles import Alignment
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-import TestCollector as TestCollectorPackage
-from checks import CheckResult as CheckResultPackage
-
 
 def red(s):
     return f"\033[91m {s}\033[00m"
