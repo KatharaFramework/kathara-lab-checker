@@ -4,8 +4,8 @@ import json
 import logging
 import os
 import signal
-import sys
 import time
+from functools import partial
 from typing import Optional
 
 import coloredlogs
@@ -40,9 +40,9 @@ from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to
 CURRENT_LAB: Optional[Lab] = None
 
 
-def handler(signum, frame):
+def handler(signum, frame, live=False):
     logger = logging.getLogger("kathara-lab-checker")
-    if CURRENT_LAB and not args.live:
+    if CURRENT_LAB and not live:
         logger.warning(f"\nCtrl-C was pressed. Undeploying current lab in: {CURRENT_LAB.fs_path()}")
         Kathara.get_instance().undeploy_lab(lab=CURRENT_LAB)
     exit(1)
@@ -313,7 +313,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
     # logger.addHandler(TqdmLoggingHandler())
