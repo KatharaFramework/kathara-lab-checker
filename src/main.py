@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import importlib.metadata
 import json
 import logging
 import os
@@ -37,6 +38,8 @@ from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessi
 from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
 from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
 
+
+VERSION = "0.1.0"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -259,6 +262,12 @@ def parse_arguments():
         "-c",
         required=True,
         help="The path to the configuration file for the tests",
+    )
+
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version=f'kathara-lab-checker {VERSION}'
     )
 
     parser.add_argument(
