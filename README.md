@@ -21,20 +21,24 @@ At this point, the tool parses the provided configuration file and executes the 
 tool creates a `test_results.xlsx` file in the network scenario directory.
 
 The file is composed of three sheets:
+
 1. `Summary`: Contains a summary of the results.
 2. `All`: Contains the results for each test.
 3. `Failed`: Contains only the results of failed tests.
 
 After all the network scenarios are tested, the tool outputs an excell file `results.xlsx` in the network scenarios
-directory containing all the results for each network scenario, including the reasons for failed tests. 
+directory containing all the results for each network scenario, including the reasons for failed tests.
 
 ## Running the example
-The repository already provide a complete example with the results of the tests. 
+
+The repository already provide a complete example with the results of the tests.
+
 - Check the test configuration by inspecting: [configuration_palabra.json](examples/palabra/configuration_palabra.json).
 - Check the network topology and requisites: [palabra.pdf](examples/palabra/palabra.pdf)
 - Check final results summary: [results.xlsx](examples/palabra/results.xlsx)
 
 You can re-run the example by typing the following command in the root directory of the project:
+
 ```bash
 python3 src/main.py --config examples/configuration_palabra.json --no-cache
 ```
@@ -66,10 +70,12 @@ In the following you will find the possible values for the configuration file.
         "!<daemon_name>, # check that the daemon is not running on the device.>"
       ]
     },
-    "kernel_routes": {
+    # checks that the expected routing table is equal to the the actual table of a device
+    "kernel_routes": { 
       "<device_name>": [
         "<route>", # Check the presence of the route in the data-plane of the device
-        "!<route>" # Check the absence of the route in the data-plane of the device
+        "[<route>, [<iface_name_1>, <iface_name_2>]]" # Check the presence of the route in the data-plane of the device
+                                                      # And checks also that the nexthops are set on the correct interfaces
       ]
     },
     "protocols": { # Checks on routing protocols
