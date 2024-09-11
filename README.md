@@ -65,7 +65,7 @@ In the following you will find the possible values for the configuration file.
       },
     },
     "daemons": {
-      "<>": [
+      "<device_name>": [
         "<daemon_name>", # check that the daemon is running on the device.>",
         "!<daemon_name>, # check that the daemon is not running on the device.>"
       ]
