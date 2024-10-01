@@ -30,7 +30,7 @@ class KernelRouteCheck(AbstractCheck):
                     check_result = CheckResult(
                         self.description,
                         False,
-                        f"The routing table of {device_name} about route {dst} have the wrong next-hops: {nexthops ^ actual_nh}",
+                        f"The routing table of {device_name} about route {dst} have the wrong next-hops: {actual_nh}, expected: {nexthops}",
                     )
                     results.append(check_result)
                     self.logger.info(check_result)
