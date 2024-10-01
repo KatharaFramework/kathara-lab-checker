@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import os
 from typing import Any, Optional
@@ -49,19 +50,6 @@ def get_interfaces_addresses(device_name: str, lab: Lab) -> dict:
     )
 
     return json.loads(get_output(exec_output_gen))
-
-
-def get_kernel_routes(device_name: str, lab: Lab) -> list[dict[str, Any]]:
-    kathara_manager = Kathara.get_instance()
-
-    try:
-        output = get_output(
-            kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j route")
-        )
-    except MachineNotRunningError:
-        return []
-
-    return json.loads(output)
 
 
 def find_device_name_from_ip(ip_mapping: dict[str, dict[str, str]], ip_search: str) -> Optional[str]:
@@ -174,9 +162,7 @@ def write_result_to_excel(check_results: list["CheckResultPackage.CheckResult"],
                 check_result.reason,
             )
             failed_index += 1
-        _write_sheet_row(
-            sheet_all, index, check_result.description, str(check_result.passed), check_result.reason
-        )
+        _write_sheet_row(sheet_all, index, check_result.description, str(check_result.passed), check_result.reason)
     workbook.save(os.path.join(path, f"{os.path.basename(path)}_result.xlsx"))
 
 
@@ -198,17 +184,70 @@ def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
     return routes
 
 
-def load_routes_from_ip_route(ip_route_output: list) -> dict[str, set]:
+def get_kernel_routes(device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    kathara_manager = Kathara.get_instance()
+
+    try:
+        output = get_output(kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j route"))
+    except MachineNotRunningError:
+        return []
+
+    return json.loads(output)
+
+
+def get_nexthops(device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    kathara_manager = Kathara.get_instance()
+
+    try:
+        output = get_output(kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j nexthop"))
+    except MachineNotRunningError:
+        return []
+
+    return json.loads(output)
+
+
+def load_routes_from_device(device_name: str, lab: Lab) -> dict[str, set]:
+    ip_route_output = get_kernel_routes(device_name, lab)
     routes = {}
+    kernel_nexthops = None
+
     for route in ip_route_output:
 
         dst = route["dst"]
         if dst == "default":
             dst = "0.0.0.0/0"
         nexthops = None
-        if "nexthops" in route:
+        if "scope" in route and route["scope"] == "link":
+            nexthops = [("d.c.", route["dev"])]
+        elif "nexthops" in route:
+            print("ao ci sta un nexthop\n\n\n\n\n")
             nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
-        if "gateway" in route:
-            nexthops = [route["gateway"]]
-        routes[dst] = set(nexthops) if nexthops else set()
+        elif "gateway" in route:
+            nexthops = [(route["gateway"], route["dev"])]
+        elif "via" in route:
+            nexthops = [(route["via"]["host"], route["dev"])]
+        elif "nhid" in route:
+            # Lazy load nexthops
+            kernel_nexthops = get_nexthops(device_name, lab) if kernel_nexthops is None else kernel_nexthops
+
+            current_nexthop = [obj for obj in kernel_nexthops if obj["id"] == route["nhid"]][0]
+            if "gateway" in current_nexthop:
+                nexthops = [(current_nexthop["gateway"], current_nexthop["dev"])]
+            elif "group" in current_nexthop:
+                nexthops = [
+                    (obj["gateway"], obj["dev"])
+                    for obj in kernel_nexthops
+                    if obj["id"] in (nhid["id"] for nhid in current_nexthop["group"])
+                ]
+            else:
+                raise Exception("Strange nexthop: ", current_nexthop)
+        routes[dst] = set(nexthops)
     return routes
+
+
+def is_valid_ip(ip_str):
+    try:
+        ipaddress.ip_address(ip_str)
+        return True
+    except ValueError:
+        return False

@@ -3,7 +3,7 @@ from typing import Union
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_kernel_routes, load_routes_from_ip_route, load_routes_from_expected
+from kathara_lab_checker.utils import is_valid_ip, load_routes_from_device, load_routes_from_expected
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
@@ -11,7 +11,7 @@ from .CheckResult import CheckResult
 class KernelRouteCheck(AbstractCheck):
     def check(self, device_name: str, expected_routing_table: list, lab: Lab) -> list[CheckResult]:
         self.description = f"Checking the routing table of {device_name}"
-        actual_routing_table = load_routes_from_ip_route(get_kernel_routes(device_name, lab))
+        actual_routing_table = load_routes_from_device(device_name, lab)
         expected_routing_table = load_routes_from_expected(expected_routing_table)
 
         results = []
@@ -26,14 +26,27 @@ class KernelRouteCheck(AbstractCheck):
                 continue
             if nexthops:
                 actual_nh = actual_routing_table[dst]
-                if actual_nh != nexthops:
+                if len(nexthops) != len(actual_nh):
                     check_result = CheckResult(
                         self.description,
                         False,
-                        f"The routing table of {device_name} about route {dst} have the wrong next-hops: {actual_nh}, expected: {nexthops}",
+                        f"The routing table of {device_name} about route {dst} have the wrong number of next-hops: {len(actual_nh)}, expected: {len(nexthops)}",
                     )
                     results.append(check_result)
                     self.logger.info(check_result)
+                    continue
+                for nh in nexthops:
+                    valid_ip = is_valid_ip(nh)
+                    if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
+                        not valid_ip and not any(item[1] == nh for item in actual_nh)
+                    ):
+                        check_result = CheckResult(
+                            self.description,
+                            False,
+                            f"The routing table of {device_name} about route {dst} does not contain next-hop: {nh}, actual: {actual_nh}",
+                        )
+                        results.append(check_result)
+                        self.logger.info(check_result)
 
         if not results:
             check_result = CheckResult(self.description, True, f"OK")
