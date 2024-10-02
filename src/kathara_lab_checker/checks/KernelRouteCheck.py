@@ -11,10 +11,25 @@ from .CheckResult import CheckResult
 class KernelRouteCheck(AbstractCheck):
     def check(self, device_name: str, expected_routing_table: list, lab: Lab) -> list[CheckResult]:
         self.description = f"Checking the routing table of {device_name}"
-        actual_routing_table = load_routes_from_device(device_name, lab)
+        actual_routing_table = dict(
+            filter(
+                lambda item: not any("d.c." in elem for elem in item[1]),
+                load_routes_from_device(device_name, lab).items(),
+            )
+        )
         expected_routing_table = load_routes_from_expected(expected_routing_table)
 
         results = []
+
+        if len(expected_routing_table) != len(actual_routing_table):
+            check_result = CheckResult(
+                self.description,
+                False,
+                f"The routing table of {device_name} have the wrong number of routes: {len(expected_routing_table)}, expected: {len(actual_routing_table)}",
+            )
+            results.append(check_result)
+            self.logger.info(check_result)
+            return results
 
         for dst, nexthops in expected_routing_table.items():
             if not dst in actual_routing_table:
