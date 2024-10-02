@@ -220,7 +220,6 @@ def load_routes_from_device(device_name: str, lab: Lab) -> dict[str, set]:
         if "scope" in route and route["scope"] == "link":
             nexthops = [("d.c.", route["dev"])]
         elif "nexthops" in route:
-            print("ao ci sta un nexthop\n\n\n\n\n")
             nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
         elif "gateway" in route:
             nexthops = [(route["gateway"], route["dev"])]
