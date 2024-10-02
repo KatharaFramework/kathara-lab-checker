@@ -120,16 +120,19 @@ In the following you will find the possible values for the configuration file.
             "<device_name>", # Check if the device has the local_ns_ip as local name server.
           ]
         },
-        "reachability": {
-          "<dns_name>": [
-            "<device_name>", # Check if device name reaches the dns_name
-          ]
+        "records": {
+		  "A": { # The software can check for every type of DNS records
+			"<dns_name>": [
+				"<ip>" # Check if the dns_name is resolved to the ip
+			]
+		  }
         }
       }
     },
     "reachability": { # Check reachability between devices
       "<device_name>": [
         "<ip>", # Check if the device reaches the ip
+        "<dns_name>", # Check if the device reaches the dns_name
       ],
     }
   }

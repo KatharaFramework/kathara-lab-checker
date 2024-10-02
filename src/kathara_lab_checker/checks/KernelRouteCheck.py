@@ -25,7 +25,7 @@ class KernelRouteCheck(AbstractCheck):
             check_result = CheckResult(
                 self.description,
                 False,
-                f"The routing table of {device_name} have the wrong number of routes: {len(expected_routing_table)}, expected: {len(actual_routing_table)}",
+                f"The routing table of {device_name} have the wrong number of routes: {len(actual_routing_table)}, expected: {len(expected_routing_table)}",
             )
             results.append(check_result)
             self.logger.info(check_result)
