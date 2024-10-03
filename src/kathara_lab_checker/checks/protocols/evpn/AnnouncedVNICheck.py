@@ -42,7 +42,7 @@ class AnnouncedVNICheck(AbstractCheck):
     def run(self, device_to_vnis_info: dict[str, dict], evpn_devices: list[str], lab: Lab) -> list[CheckResult]:
         results = []
         for device_name in device_to_vnis_info.keys():
-            check_result = self.check(device_name,  lab)
+            check_result = self.check(device_name, lab)
             self.logger.info(check_result)
             results.append(check_result)
 

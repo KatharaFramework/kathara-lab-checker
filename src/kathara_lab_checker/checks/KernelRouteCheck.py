@@ -53,7 +53,7 @@ class KernelRouteCheck(AbstractCheck):
                 for nh in nexthops:
                     valid_ip = is_valid_ip(nh)
                     if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
-                        not valid_ip and not any(item[1] == nh for item in actual_nh)
+                            not valid_ip and not any(item[1] == nh for item in actual_nh)
                     ):
                         check_result = CheckResult(
                             self.description,

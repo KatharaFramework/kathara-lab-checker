@@ -12,7 +12,7 @@ from kathara_lab_checker.utils import get_output, find_lines_with_string, find_d
 
 class DNSAuthorityCheck(AbstractCheck):
     def check(
-        self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
+            self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
     ) -> CheckResult:
         self.description = (
             f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
@@ -80,11 +80,11 @@ class DNSAuthorityCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def run(
-        self,
-        zone_to_authoritative_ips: dict[str, list[str]],
-        local_nameservers: list[str],
-        ip_mapping: dict[str, dict[str, str]],
-        lab: Lab,
+            self,
+            zone_to_authoritative_ips: dict[str, list[str]],
+            local_nameservers: list[str],
+            ip_mapping: dict[str, dict[str, str]],
+            lab: Lab,
     ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():

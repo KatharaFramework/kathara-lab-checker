@@ -1,5 +1,4 @@
-from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
-from Kathara.model import Link
+from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from .AbstractCheck import AbstractCheck

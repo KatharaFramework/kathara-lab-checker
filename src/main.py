@@ -28,6 +28,7 @@ from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
 from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
 from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
 from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from kathara_lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
 from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
 from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
@@ -36,8 +37,6 @@ from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import Announce
 from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
 from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
-from kathara_lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
-
 
 VERSION = "0.1.2"
 CURRENT_LAB: Optional[Lab] = None
@@ -52,13 +51,13 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-    lab_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        lab_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -233,13 +232,13 @@ def run_on_single_network_scenario(
 
 
 def run_on_multiple_network_scenarios(
-    labs_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        labs_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -248,12 +247,12 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-        list(
-            filter(
-                lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                os.listdir(labs_path),
+            list(
+                filter(
+                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                    os.listdir(labs_path),
+                )
             )
-        )
     ):
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report

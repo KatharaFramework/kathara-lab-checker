@@ -1,4 +1,5 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
@@ -22,8 +23,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
     return list(
         filter(
             lambda x: "linkinfo" in x
-            and "id" in x["linkinfo"]["info_data"]
-            and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
+                      and "id" in x["linkinfo"]["info_data"]
+                      and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
             interfaces,
         )
     ).pop()
@@ -31,7 +32,7 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 class BridgeCheck(AbstractCheck):
     def check_bridge_interfaces(
-        self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
+            self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
     ) -> (CheckResult, set[str]):
         self.description = (
             f"Checking that interfaces {expected_interfaces} "
@@ -90,8 +91,8 @@ class BridgeCheck(AbstractCheck):
             f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
         )
         if (
-            "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
-            and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
+                "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
+                and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
         ):
             return CheckResult(self.description, True, "OK")
         else:
@@ -102,11 +103,11 @@ class BridgeCheck(AbstractCheck):
             )
 
     def check_vlan_tags(
-        self,
-        device_name: str,
-        interface_name: str,
-        interface_configuration: dict,
-        actual_interface_vlan: dict,
+            self,
+            device_name: str,
+            interface_name: str,
+            interface_configuration: dict,
+            actual_interface_vlan: dict,
     ):
         self.description = (
             f"Checking that vlans `{interface_configuration['vlan_tags']}` "
@@ -124,7 +125,7 @@ class BridgeCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def check_vxlan_pvid(
-        self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
+            self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
     ):
         self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
@@ -151,7 +152,7 @@ class BridgeCheck(AbstractCheck):
         return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
 
     def check_vlan_pvid(
-        self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
+            self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
     ):
         self.description = f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}"
         pvid = set(

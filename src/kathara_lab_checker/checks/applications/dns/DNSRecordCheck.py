@@ -1,18 +1,18 @@
+from Kathara.manager.Kathara import Kathara
+from Kathara.model.Lab import Lab
+
 from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
 from kathara_lab_checker.checks.CheckResult import CheckResult
-from Kathara.model.Lab import Lab
-from Kathara.manager.Kathara import Kathara
-
 from kathara_lab_checker.utils import get_output
 
 
 class DNSRecordCheck(AbstractCheck):
 
     def run(
-        self,
-        records: dict[str, dict[str, list[str]]],
-        machines_with_dns: list[str],
-        lab: Lab,
+            self,
+            records: dict[str, dict[str, list[str]]],
+            machines_with_dns: list[str],
+            lab: Lab,
     ) -> list[CheckResult]:
         results = []
         kathara_manager: Kathara = Kathara.get_instance()
