@@ -11,6 +11,5 @@ class CheckResult:
         self.reason: str = reason
         logging.getLogger("kathara-lab-checker").info(self)
 
-
     def __str__(self) -> str:
         return f"{self.description}: {green(self.reason) if self.passed else red(self.reason)}"

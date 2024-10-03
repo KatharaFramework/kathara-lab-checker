@@ -1,11 +1,93 @@
-from typing import Union
+import ipaddress
+import json
+from typing import Union, Any
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import is_valid_ip, load_routes_from_device, load_routes_from_expected
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
+
+
+def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
+    routes = {}
+    for route in expected_routes:
+        if type(route) is list:
+            routes[route[0]] = set(route[1])
+        else:
+            routes[route] = set()
+    return routes
+
+
+def get_kernel_routes(device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    kathara_manager = Kathara.get_instance()
+    try:
+        stdout, _, _ = kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j route",
+                                            stream=False)
+        stdout = stdout.decode("utf-8").strip()
+    except MachineNotRunningError:
+        return []
+    return json.loads(stdout)
+
+
+def get_nexthops(device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    kathara_manager = Kathara.get_instance()
+
+    try:
+        stdout, _, _ = kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j nexthop",
+                                            stream=False)
+        stdout = stdout.decode("utf-8").strip()
+    except MachineNotRunningError:
+        return []
+
+    return json.loads(stdout)
+
+
+def load_routes_from_device(device_name: str, lab: Lab) -> dict[str, set]:
+    ip_route_output = get_kernel_routes(device_name, lab)
+    routes = {}
+    kernel_nexthops = None
+
+    for route in ip_route_output:
+
+        dst = route["dst"]
+        if dst == "default":
+            dst = "0.0.0.0/0"
+        nexthops = None
+        if "scope" in route and route["scope"] == "link":
+            nexthops = [("d.c.", route["dev"])]
+        elif "nexthops" in route:
+            nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
+        elif "gateway" in route:
+            nexthops = [(route["gateway"], route["dev"])]
+        elif "via" in route:
+            nexthops = [(route["via"]["host"], route["dev"])]
+        elif "nhid" in route:
+            # Lazy load nexthops
+            kernel_nexthops = get_nexthops(device_name, lab) if kernel_nexthops is None else kernel_nexthops
+
+            current_nexthop = [obj for obj in kernel_nexthops if obj["id"] == route["nhid"]][0]
+            if "gateway" in current_nexthop:
+                nexthops = [(current_nexthop["gateway"], current_nexthop["dev"])]
+            elif "group" in current_nexthop:
+                nexthops = [
+                    (obj["gateway"], obj["dev"])
+                    for obj in kernel_nexthops
+                    if obj["id"] in (nhid["id"] for nhid in current_nexthop["group"])
+                ]
+            else:
+                raise Exception("Strange nexthop: ", current_nexthop)
+        routes[dst] = set(nexthops)
+    return routes
+
+
+def is_valid_ip(ip_str):
+    try:
+        ipaddress.ip_address(ip_str)
+        return True
+    except ValueError:
+        return False
 
 
 class KernelRouteCheck(AbstractCheck):

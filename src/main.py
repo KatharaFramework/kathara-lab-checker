@@ -37,7 +37,8 @@ from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringC
 from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
-from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
+from kathara_lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
+from kathara_lab_checker.utils import reverse_dictionary
 
 VERSION = "0.1.2"
 CURRENT_LAB: Optional[Lab] = None
@@ -198,24 +199,27 @@ def run_on_single_network_scenario(
     if "applications" in configuration["test"]:
         for application_name, application in configuration["test"]["applications"].items():
             if application_name == "dns":
-                logger.info("Checking DNS configurations...")
-                check_results = DNSAuthorityCheck().run(
-                    application["authoritative"],
-                    list(application["local_ns"].keys()),
-                    configuration["test"]["ip_mapping"],
-                    lab,
-                )
-                test_collector.add_check_results(lab_name, check_results)
+                if "authoritative" in application:
+                    logger.info("Checking DNS configurations...")
+                    check_results = DNSAuthorityCheck().run(
+                        application["authoritative"],
+                        list(application["local_ns"].keys()),
+                        configuration["test"]["ip_mapping"],
+                        lab,
+                    )
+                    test_collector.add_check_results(lab_name, check_results)
 
-                logger.info("Checking local name servers configurations...")
-                check_results = LocalNSCheck().run(application["local_ns"], lab)
-                test_collector.add_check_results(lab_name, check_results)
+                if "local_ns" in application:
+                    logger.info("Checking local name servers configurations...")
+                    check_results = LocalNSCheck().run(application["local_ns"], lab)
+                    test_collector.add_check_results(lab_name, check_results)
 
-                logger.info(f"Starting test for DNS records...")
-                check_results = DNSRecordCheck().run(
-                    application["records"], reverse_dictionary(application["local_ns"]).keys(), lab
-                )
-                test_collector.add_check_results(lab_name, check_results)
+                if "records" in application:
+                    logger.info(f"Starting test for DNS records...")
+                    check_results = DNSRecordCheck().run(
+                        application["records"], reverse_dictionary(application["local_ns"]).keys(), lab
+                    )
+                    test_collector.add_check_results(lab_name, check_results)
 
     if "custom_commands" in configuration["test"]:
         logger.info("Checking custom commands output...")
