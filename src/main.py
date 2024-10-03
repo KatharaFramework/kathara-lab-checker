@@ -19,6 +19,7 @@ from tqdm import tqdm
 from kathara_lab_checker.TestCollector import TestCollector
 from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
 from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
+from kathara_lab_checker.checks.CustomCommandCheck import CustomCommandCheck
 from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
 from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
 from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
@@ -116,9 +117,10 @@ def run_on_single_network_scenario(
     check_results = CollisionDomainCheck().run(list(lab_template.links.values()), lab)
     test_collector.add_check_results(lab_name, check_results)
 
-    logger.info("Checking that all required startup files exist...")
-    check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "requiring_startup" in configuration["test"]:
+        logger.info("Checking that all required startup files exist...")
+        check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
     if "ipv6_enabled" in configuration["test"]:
         logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
@@ -214,6 +216,11 @@ def run_on_single_network_scenario(
                     application["records"], reverse_dictionary(application["local_ns"]).keys(), lab
                 )
                 test_collector.add_check_results(lab_name, check_results)
+
+    if "custom_commands" in configuration["test"]:
+        logger.info("Checking custom commands output...")
+        check_results = CustomCommandCheck().run(configuration["test"]["custom_commands"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
     if not live and not keep_open:
         logger.info("Undeploying Network Scenario")
