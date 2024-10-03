@@ -39,6 +39,5 @@ class DaemonCheck(AbstractCheck):
             self.logger.info(f"Checking if daemons are running on `{device_name}`...")
             for daemon_name in daemons:
                 check_result = self.check(device_name, daemon_name, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

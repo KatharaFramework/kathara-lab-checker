@@ -91,7 +91,6 @@ class DNSAuthorityCheck(AbstractCheck):
             self.logger.info(f"Checking authority ip for domain `{domain}`")
             for ns in name_servers:
                 check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
 
                 if domain == ".":
@@ -106,13 +105,11 @@ class DNSAuthorityCheck(AbstractCheck):
                             generic_ns_ip,
                             lab,
                         )
-                        self.logger.info(check_result)
                         results.append(check_result)
 
                     for local_ns in local_nameservers:
                         check_result = self.check(
                             domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns, lab
                         )
-                        self.logger.info(check_result)
                         results.append(check_result)
         return results

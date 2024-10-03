@@ -48,7 +48,6 @@ class InterfaceIPCheck(AbstractCheck):
                 dumped_iface = get_interfaces_addresses(device_name, lab)
                 for interface_number, ip in iface_to_ips.items():
                     check_result = self.check(device_name, interface_number, ip, dumped_iface)
-                    self.logger.info(check_result)
                     results.append(check_result)
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")

@@ -34,6 +34,5 @@ class AnnouncedNetworkCheck(AbstractCheck):
             self.logger.info(f"Checking {device_name} BGP announces...")
             for network in networks:
                 check_result = self.check(device_name, protocol, network, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

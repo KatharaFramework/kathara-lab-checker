@@ -216,13 +216,11 @@ class BridgeCheck(AbstractCheck):
                     device_name, expected_bridge_interfaces, actual_interfaces
                 )
                 results.append(check_result)
-                self.logger.info(check_result)
 
                 if check_result.passed:
                     check_result = self.check_vlan_filtering(
                         device_name, get_interface_by_name(masters.pop(), actual_interfaces)
                     )
-                    self.logger.info(check_result)
                     results.append(check_result)
 
                     for interface_name, interface_conf in bridge_conf["interfaces"].items():
@@ -231,7 +229,6 @@ class BridgeCheck(AbstractCheck):
                         try:
                             actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
                             check_result = CheckResult(description, True, "OK")
-                            self.logger.info(check_result)
                             results.append(check_result)
                         except IndexError:
                             check_result = CheckResult(
@@ -239,7 +236,6 @@ class BridgeCheck(AbstractCheck):
                                 False,
                                 f"No VLAN found for for `{interface_name}` on `{device_name}`",
                             )
-                            self.logger.info(check_result)
                             results.append(check_result)
 
                         if actual_interface_vlans:
@@ -248,7 +244,6 @@ class BridgeCheck(AbstractCheck):
                                     device_name, interface_name, interface_conf, actual_interface_vlans
                                 )
                                 results.append(check_result)
-                                self.logger.info(check_result)
 
                             if "pvid" in interface_conf:
                                 check_result = self.check_vlan_pvid(
@@ -258,7 +253,6 @@ class BridgeCheck(AbstractCheck):
                                     actual_interface_vlans,
                                 )
                                 results.append(check_result)
-                                self.logger.info(check_result)
 
                     if "vxlan" in bridge_conf:
                         for vni, vni_info in bridge_conf["vxlan"].items():
@@ -266,5 +260,4 @@ class BridgeCheck(AbstractCheck):
                                 device_name, vni, vni_info["pvid"], actual_interfaces, actual_vlans
                             )
                             results.append(check_result)
-                            self.logger.info(check_result)
         return results

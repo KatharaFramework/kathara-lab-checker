@@ -47,6 +47,5 @@ class BGPPeeringCheck(AbstractCheck):
             for neighbor in neighbors:
                 self.description = f"{device_name} has bgp peer {neighbor}"
                 check_result = self.check(device_name, neighbor, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

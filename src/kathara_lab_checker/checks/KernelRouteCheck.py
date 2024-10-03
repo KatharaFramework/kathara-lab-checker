@@ -28,7 +28,6 @@ class KernelRouteCheck(AbstractCheck):
                 f"The routing table of {device_name} have the wrong number of routes: {len(actual_routing_table)}, expected: {len(expected_routing_table)}",
             )
             results.append(check_result)
-            self.logger.info(check_result)
             return results
 
         for dst, nexthops in expected_routing_table.items():
@@ -37,7 +36,6 @@ class KernelRouteCheck(AbstractCheck):
                     self.description, False, f"The routing table of {device_name} is missing route {dst}"
                 )
                 results.append(check_result)
-                self.logger.info(check_result)
                 continue
             if nexthops:
                 actual_nh = actual_routing_table[dst]
@@ -48,7 +46,6 @@ class KernelRouteCheck(AbstractCheck):
                         f"The routing table of {device_name} about route {dst} have the wrong number of next-hops: {len(actual_nh)}, expected: {len(nexthops)}",
                     )
                     results.append(check_result)
-                    self.logger.info(check_result)
                     continue
                 for nh in nexthops:
                     valid_ip = is_valid_ip(nh)
@@ -61,12 +58,10 @@ class KernelRouteCheck(AbstractCheck):
                             f"The routing table of {device_name} about route {dst} does not contain next-hop: {nh}, actual: {actual_nh}",
                         )
                         results.append(check_result)
-                        self.logger.info(check_result)
 
         if not results:
             check_result = CheckResult(self.description, True, f"OK")
             results.append(check_result)
-            self.logger.info(check_result)
 
         return results
 

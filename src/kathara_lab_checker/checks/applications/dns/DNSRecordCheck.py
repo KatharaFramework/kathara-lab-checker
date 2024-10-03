@@ -35,6 +35,5 @@ class DNSRecordCheck(AbstractCheck):
                             f"{client} resolve {recordtype} {record} with IP {ip} instead of {addresses}",
                         )
                         check_result
-                    self.logger.info(check_result)
                     results.append(check_result)
         return results

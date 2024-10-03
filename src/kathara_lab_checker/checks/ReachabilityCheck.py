@@ -49,6 +49,5 @@ class ReachabilityCheck(AbstractCheck):
         for device_name, destinations in devices_to_destinations.items():
             for destination in destinations:
                 check_result = self.check(device_name, destination, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results
