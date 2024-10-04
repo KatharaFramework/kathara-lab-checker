@@ -1,3 +1,4 @@
+import logging
 import re
 
 from Kathara.exceptions import MachineNotFoundError
@@ -18,7 +19,9 @@ class CustomCommandCheck(AbstractCheck):
             device = lab.get_machine(device_name)
             stdout, stderr, exit_code = kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash,
                                                              command=command_entry["command"], stream=False)
-            stdout = stdout.decode("utf-8").strip()
+
+            stdout = stdout.decode("utf-8").strip() if stdout else stderr.decode("utf-8").strip()
+
             if "exit_code" in command_entry:
                 self.description = f"Checking the exit code of the command '{command_entry['command']}' on '{device_name}'"
                 if exit_code == command_entry["exit_code"]:
