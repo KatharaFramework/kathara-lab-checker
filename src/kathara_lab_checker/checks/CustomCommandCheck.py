@@ -30,7 +30,10 @@ class CustomCommandCheck(AbstractCheck):
 
             self.description = f"Checking the output of the command '{command_entry['command']}' on '{device_name}'"
             if "output" in command_entry:
-                if stdout == command_entry["output"]:
+                stdout = stdout.replace("\r\n", "\n").replace("\r", "\n")
+                command_entry["output"] = command_entry["output"].replace("\r\n", "\n").replace("\r", "\n")
+
+                if stdout == command_entry["output"].replace("\r\n", "\n").replace("\r", "\n"):
                     results.append(CheckResult(self.description, True, "OK"))
                 else:
                     reason = (f"The output of the command differs from the expected one."
