@@ -17,18 +17,23 @@ class CustomCommandCheck(AbstractCheck):
         results = []
         try:
             device = lab.get_machine(device_name)
-            stdout, stderr, exit_code = kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash,
-                                                             command=command_entry["command"], stream=False)
+            stdout, stderr, exit_code = kathara_manager.exec(
+                machine_name=device.name, lab_hash=lab.hash, command=command_entry["command"], stream=False
+            )
 
             stdout = stdout.decode("utf-8").strip() if stdout else stderr.decode("utf-8").strip()
 
             if "exit_code" in command_entry:
-                self.description = f"Checking the exit code of the command '{command_entry['command']}' on '{device_name}'"
+                self.description = (
+                    f"Checking the exit code of the command '{command_entry['command']}' on '{device_name}'"
+                )
                 if exit_code == command_entry["exit_code"]:
                     results.append(CheckResult(self.description, True, "OK"))
                 else:
-                    reason = (f"The exit code of the command differs from the expected one."
-                              f"\n Actual: {exit_code}\n Expected: {command_entry['exit_code']}")
+                    reason = (
+                        f"The exit code of the command differs from the expected one."
+                        f"\n Actual: {exit_code}\n Expected: {command_entry['exit_code']}"
+                    )
                     results.append(CheckResult(self.description, False, reason))
 
             self.description = f"Checking the output of the command '{command_entry['command']}' on '{device_name}'"
@@ -39,16 +44,20 @@ class CustomCommandCheck(AbstractCheck):
                 if stdout == command_entry["output"].replace("\r\n", "\n").replace("\r", "\n"):
                     results.append(CheckResult(self.description, True, "OK"))
                 else:
-                    reason = (f"The output of the command differs from the expected one."
-                              f"\n Actual: {stdout}\n Expected: {command_entry['output']}")
+                    reason = (
+                        f"The output of the command differs from the expected one."
+                        f"\n Actual: {stdout}\n Expected: {command_entry['output']}"
+                    )
                     results.append(CheckResult(self.description, False, reason))
             if "regex_match" in command_entry:
 
-                if re.match(command_entry["regex_match"], stdout):
+                if re.search(command_entry["regex_match"], stdout):
                     results.append(CheckResult(self.description, True, "OK"))
                 else:
-                    reason = (f"The output of the command do not match the expected regex."
-                              f"\n Actual: {stdout}\n Regex: {command_entry['regex_match']}")
+                    reason = (
+                        f"The output of the command do not match the expected regex."
+                        f"\n Actual: {stdout}\n Regex: {command_entry['regex_match']}"
+                    )
                     results.append(CheckResult(self.description, False, reason))
 
         except MachineNotFoundError as e:
