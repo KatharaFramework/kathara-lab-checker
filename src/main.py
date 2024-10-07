@@ -359,6 +359,10 @@ def main():
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
     logger.info(f"Parsing network scenarios template in: {conf['structure']}")
+    if not os.path.exists(conf["structure"]):
+        logger.error(f"The structure file {conf["structure"]} does not exist")
+        exit(1)
+        
     template_lab = LabParser().parse(
         os.path.dirname(conf["structure"]),
         conf_name=os.path.basename(conf["structure"]),
