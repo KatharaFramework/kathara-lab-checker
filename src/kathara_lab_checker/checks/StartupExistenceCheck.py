@@ -18,6 +18,5 @@ class StartupExistenceCheck(AbstractCheck):
         results = []
         for device_name in machines_to_check:
             check_result = self.check(device_name, lab)
-            self.logger.info(check_result)
             results.append(check_result)
         return results

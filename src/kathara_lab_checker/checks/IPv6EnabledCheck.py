@@ -1,5 +1,4 @@
-from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
-from Kathara.model import Link
+from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from .AbstractCheck import AbstractCheck
@@ -23,6 +22,5 @@ class IPv6EnabledCheck(AbstractCheck):
         results = []
         for device_name in ipv6_devices:
             check_result = self.check(device_name, lab)
-            self.logger.info(check_result)
             results.append(check_result)
         return results

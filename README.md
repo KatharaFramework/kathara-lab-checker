@@ -68,7 +68,8 @@ In the following you will find the possible values for the configuration file.
     ], 
     "ip_mapping": {
       "<device_name>": {
-        "<interface_num>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface of the device
+        "<interface_name>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface of the device
+        "<interface_num>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface eth# of the device
       },
     },
     "daemons": {
@@ -81,7 +82,7 @@ In the following you will find the possible values for the configuration file.
     "kernel_routes": { 
       "<device_name>": [
         "<route>", # Check the presence of the route in the data-plane of the device
-        "[<route>, [<iface_name_1>, <iface_name_2>]]" # Check the presence of the route in the data-plane of the device
+        "[<route>, [<iface_name_1>, <iface_name_2>, <next_hop_1>]]" # Check the presence of the route in the data-plane of the device
                                                       # And checks also that the nexthops are set on the correct interfaces
       ]
     },
@@ -119,16 +120,19 @@ In the following you will find the possible values for the configuration file.
             "<device_name>", # Check if the device has the local_ns_ip as local name server.
           ]
         },
-        "reachability": {
-          "<dns_name>": [
-            "<device_name>", # Check if device name reaches the dns_name
-          ]
+        "records": {
+		  "A": { # The software can check for every type of DNS records
+			"<dns_name>": [
+				"<ip>" # Check if the dns_name is resolved to the ip
+			]
+		  }
         }
       }
     },
     "reachability": { # Check reachability between devices
       "<device_name>": [
         "<ip>", # Check if the device reaches the ip
+        "<dns_name>", # Check if the device reaches the dns_name
       ],
     }
   }

@@ -38,6 +38,5 @@ class LocalNSCheck(AbstractCheck):
         for local_ns, managed_devices in local_nameservers_to_devices.items():
             for device_name in managed_devices:
                 check_result = self.check(local_ns, device_name, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

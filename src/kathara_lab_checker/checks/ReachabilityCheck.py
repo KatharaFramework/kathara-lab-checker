@@ -32,12 +32,14 @@ class ReachabilityCheck(AbstractCheck):
         output = get_output(exec_output_gen).replace("ERROR: ", "")
 
         try:
-            parsed_output = jc.parse("ping", output)
-            if int(parsed_output['packets_received']) > 0:
+            parsed_output = jc.parse("ping", output, quiet=True)
+            if int(parsed_output["packets_received"]) > 0:
                 reason = f"`{device_name}` can reach `{destination}`." if invert else "OK"
                 return CheckResult(self.description, invert ^ True, reason)
             else:
-                reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
+                reason = (
+                    "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
+                )
                 return CheckResult(self.description, invert ^ False, reason)
         except Exception:
             return CheckResult(self.description, False, output.strip())
@@ -47,6 +49,5 @@ class ReachabilityCheck(AbstractCheck):
         for device_name, destinations in devices_to_destinations.items():
             for destination in destinations:
                 check_result = self.check(device_name, destination, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

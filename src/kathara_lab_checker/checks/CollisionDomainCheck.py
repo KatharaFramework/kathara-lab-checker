@@ -27,6 +27,5 @@ class CollisionDomainCheck(AbstractCheck):
         results = []
         for cd_t in template_cds:
             check_result = self.check(cd_t, lab)
-            self.logger.info(check_result)
             results.append(check_result)
         return results

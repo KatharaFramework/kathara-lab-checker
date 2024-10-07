@@ -42,14 +42,12 @@ class AnnouncedVNICheck(AbstractCheck):
     def run(self, device_to_vnis_info: dict[str, dict], evpn_devices: list[str], lab: Lab) -> list[CheckResult]:
         results = []
         for device_name in device_to_vnis_info.keys():
-            check_result = self.check(device_name,  lab)
-            self.logger.info(check_result)
+            check_result = self.check(device_name, lab)
             results.append(check_result)
 
         not_advertise = set(evpn_devices).difference(set(device_to_vnis_info.keys()))
         for device_name in not_advertise:
             check_result = self.check(device_name, lab, invert=True)
-            self.logger.info(check_result)
             results.append(check_result)
 
         return results

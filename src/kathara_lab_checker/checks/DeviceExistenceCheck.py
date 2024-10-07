@@ -20,6 +20,5 @@ class DeviceExistenceCheck(AbstractCheck):
         results = []
         for device_name in template_machines:
             check_result = self.check(device_name, lab)
-            self.logger.info(check_result)
             results.append(check_result)
         return results

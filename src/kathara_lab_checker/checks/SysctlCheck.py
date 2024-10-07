@@ -1,5 +1,4 @@
-from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
-from Kathara.model import Link
+from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from .AbstractCheck import AbstractCheck
@@ -34,6 +33,5 @@ class SysctlCheck(AbstractCheck):
         for device_name, sysctls in devices_sysctls.items():
             for sysctl in sysctls:
                 check_result = self.check(device_name, sysctl, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

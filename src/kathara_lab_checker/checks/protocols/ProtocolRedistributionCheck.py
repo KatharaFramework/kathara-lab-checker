@@ -47,6 +47,5 @@ class ProtocolRedistributionCheck(AbstractCheck):
         for device_name, injected_protocols in devices_to_redistributed.items():
             for injected_protocol in injected_protocols:
                 check_result = self.check(device_name, protocol, injected_protocol, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

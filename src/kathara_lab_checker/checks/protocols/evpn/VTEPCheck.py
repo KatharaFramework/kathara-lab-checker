@@ -44,6 +44,5 @@ class VTEPCheck(AbstractCheck):
             for vni in vnis:
                 self.description = f"Checking that `{device_name}` VTEP has vni `{vni}` with VTEP IP `{vtep_ip}`"
                 check_result = self.check(device_name, vni, vtep_ip, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results
