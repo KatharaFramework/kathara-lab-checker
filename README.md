@@ -134,7 +134,17 @@ In the following you will find the possible values for the configuration file.
         "<ip>", # Check if the device reaches the ip
         "<dns_name>", # Check if the device reaches the dns_name
       ],
-    }
+    },
+	"custom_commands": { # Execute a command inside a device and checks the output
+		"<device_name>": [
+			{
+				"command": "<command>", # Command to execute
+				"regex_match": "<regex>", # Check if the output matches the regex
+				"output": "<expected_output>", # Check if the output is the expected one
+				"exit_code": <expected_exit_code> # Check if the command exit code is the expected one
+			}
+		]
+	}
   }
 }
 ```
