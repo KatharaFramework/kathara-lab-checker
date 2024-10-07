@@ -360,7 +360,7 @@ def main():
 
     logger.info(f"Parsing network scenarios template in: {conf['structure']}")
     if not os.path.exists(conf["structure"]):
-        logger.error(f"The structure file {conf["structure"]} does not exist")
+        logger.error(f"The structure file {conf['structure']} does not exist")
         exit(1)
         
     template_lab = LabParser().parse(
