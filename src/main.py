@@ -40,7 +40,7 @@ from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
 from kathara_lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
 from kathara_lab_checker.utils import reverse_dictionary
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 CURRENT_LAB: Optional[Lab] = None
 
 
