@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kathara-lab-checker = "main:main"
+kathara-lab-checker = "kathara_lab_checker:main"
 
 [project.urls]
 "Bug Reports" = "https://github.com/KatharaFramework/kathara-lab-checker/issues"

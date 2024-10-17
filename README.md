@@ -21,7 +21,7 @@ The Kathará Lab Checker takes in input a configuration file specifying the test
 To run the tool you only need to run the `main.py` passing the desired configuration file.
 
 ```bash
-python3 -m kathara-lab-checker --config <path-to-the-configuration-file>
+python3 -m kathara_lab_checker --config <path-to-the-configuration-file> --labs <path-to-the-labs-directory>
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
@@ -47,7 +47,7 @@ The repository already provide a complete example with the results of the tests.
 You can re-run the example by typing the following command in the root directory of the project:
 
 ```bash
-python3 -m kathara-lab-checker --config examples/configuration_palabra.json --no-cache
+python3 -m kathara_lab_checker --config examples/palabra/configuration_palabra.json --no-cache --labs examples/palabra/labs
 ```
 
 The `--no-cache` flag force to repeat already executed tests.

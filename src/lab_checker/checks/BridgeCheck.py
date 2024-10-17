@@ -4,7 +4,7 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_output
+from lab_checker.utils import get_output
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 

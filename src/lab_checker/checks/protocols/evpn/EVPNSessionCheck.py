@@ -4,9 +4,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output
+from lab_checker.checks.AbstractCheck import AbstractCheck
+from lab_checker.checks.CheckResult import CheckResult
+from lab_checker.utils import get_output
 
 
 class EVPNSessionCheck(AbstractCheck):
