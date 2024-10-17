@@ -3,9 +3,9 @@ import re
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output
+from lab_checker.checks.AbstractCheck import AbstractCheck
+from lab_checker.checks.CheckResult import CheckResult
+from lab_checker.utils import get_output
 
 
 class AnnouncedVNICheck(AbstractCheck):
@@ -42,14 +42,12 @@ class AnnouncedVNICheck(AbstractCheck):
     def run(self, device_to_vnis_info: dict[str, dict], evpn_devices: list[str], lab: Lab) -> list[CheckResult]:
         results = []
         for device_name in device_to_vnis_info.keys():
-            check_result = self.check(device_name,  lab)
-            self.logger.info(check_result)
+            check_result = self.check(device_name, lab)
             results.append(check_result)
 
         not_advertise = set(evpn_devices).difference(set(device_to_vnis_info.keys()))
         for device_name in not_advertise:
             check_result = self.check(device_name, lab, invert=True)
-            self.logger.info(check_result)
             results.append(check_result)
 
         return results

@@ -5,14 +5,14 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output, find_lines_with_string, find_device_name_from_ip
+from lab_checker.checks.AbstractCheck import AbstractCheck
+from lab_checker.checks.CheckResult import CheckResult
+from lab_checker.utils import get_output, find_lines_with_string, find_device_name_from_ip
 
 
 class DNSAuthorityCheck(AbstractCheck):
     def check(
-        self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
+            self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
     ) -> CheckResult:
         self.description = (
             f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
@@ -80,18 +80,17 @@ class DNSAuthorityCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def run(
-        self,
-        zone_to_authoritative_ips: dict[str, list[str]],
-        local_nameservers: list[str],
-        ip_mapping: dict[str, dict[str, str]],
-        lab: Lab,
+            self,
+            zone_to_authoritative_ips: dict[str, list[str]],
+            local_nameservers: list[str],
+            ip_mapping: dict[str, dict[str, str]],
+            lab: Lab,
     ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():
             self.logger.info(f"Checking authority ip for domain `{domain}`")
             for ns in name_servers:
                 check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
 
                 if domain == ".":
@@ -106,13 +105,11 @@ class DNSAuthorityCheck(AbstractCheck):
                             generic_ns_ip,
                             lab,
                         )
-                        self.logger.info(check_result)
                         results.append(check_result)
 
                     for local_ns in local_nameservers:
                         check_result = self.check(
                             domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns, lab
                         )
-                        self.logger.info(check_result)
                         results.append(check_result)
         return results

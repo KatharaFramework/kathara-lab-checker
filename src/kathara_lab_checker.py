@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import importlib.metadata
 import json
 import logging
 import os
@@ -17,29 +16,31 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from kathara_lab_checker.TestCollector import TestCollector
-from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
-from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
-from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
-from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
-from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
-from kathara_lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
-from kathara_lab_checker.checks.KernelRouteCheck import KernelRouteCheck
-from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
-from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
-from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
-from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
-from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
-from kathara_lab_checker.utils import reverse_dictionary, write_final_results_to_excel, write_result_to_excel
+from lab_checker.TestCollector import TestCollector
+from lab_checker.checks.BridgeCheck import BridgeCheck
+from lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
+from lab_checker.checks.CustomCommandCheck import CustomCommandCheck
+from lab_checker.checks.DaemonCheck import DaemonCheck
+from lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
+from lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
+from lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
+from lab_checker.checks.KernelRouteCheck import KernelRouteCheck
+from lab_checker.checks.ReachabilityCheck import ReachabilityCheck
+from lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
+from lab_checker.checks.SysctlCheck import SysctlCheck
+from lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
+from lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
+from lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
+from lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
+from lab_checker.utils import reverse_dictionary
 
-
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -51,9 +52,15 @@ def handler(signum, frame, live=False):
     exit(1)
 
 
-def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_template: Lab,
-                                   no_cache: bool = False, live: bool = False, keep_open: bool = False,
-                                   skip_report: bool = False):
+def run_on_single_network_scenario(
+        lab_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
+):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
 
@@ -111,9 +118,10 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     check_results = CollisionDomainCheck().run(list(lab_template.links.values()), lab)
     test_collector.add_check_results(lab_name, check_results)
 
-    logger.info("Checking that all required startup files exist...")
-    check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
-    test_collector.add_check_results(lab_name, check_results)
+    if "requiring_startup" in configuration["test"]:
+        logger.info("Checking that all required startup files exist...")
+        check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
     if "ipv6_enabled" in configuration["test"]:
         logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
@@ -191,22 +199,32 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     if "applications" in configuration["test"]:
         for application_name, application in configuration["test"]["applications"].items():
             if application_name == "dns":
-                logger.info("Checking DNS configurations...")
-                check_results = DNSAuthorityCheck().run(
-                    application["authoritative"],
-                    list(application["local_ns"].keys()),
-                    configuration["test"]["ip_mapping"],
-                    lab,
-                )
-                test_collector.add_check_results(lab_name, check_results)
+                if "authoritative" in application:
+                    logger.info("Checking DNS configurations...")
+                    check_results = DNSAuthorityCheck().run(
+                        application["authoritative"],
+                        list(application["local_ns"].keys()),
+                        configuration["test"]["ip_mapping"],
+                        lab,
+                    )
+                    test_collector.add_check_results(lab_name, check_results)
 
-                logger.info("Checking local name servers configurations...")
-                check_results = LocalNSCheck().run(application["local_ns"], lab)
-                test_collector.add_check_results(lab_name, check_results)
+                if "local_ns" in application:
+                    logger.info("Checking local name servers configurations...")
+                    check_results = LocalNSCheck().run(application["local_ns"], lab)
+                    test_collector.add_check_results(lab_name, check_results)
 
-                logger.info(f"Starting reachability test for DNS...")
-                check_results = ReachabilityCheck().run(reverse_dictionary(application["reachability"]), lab)
-                test_collector.add_check_results(lab_name, check_results)
+                if "records" in application:
+                    logger.info(f"Starting test for DNS records...")
+                    check_results = DNSRecordCheck().run(
+                        application["records"], reverse_dictionary(application["local_ns"]).keys(), lab
+                    )
+                    test_collector.add_check_results(lab_name, check_results)
+
+    if "custom_commands" in configuration["test"]:
+        logger.info("Checking custom commands output...")
+        check_results = CustomCommandCheck().run(configuration["test"]["custom_commands"], lab)
+        test_collector.add_check_results(lab_name, check_results)
 
     if not live and not keep_open:
         logger.info("Undeploying Network Scenario")
@@ -224,8 +242,15 @@ def run_on_single_network_scenario(lab_path: str, configuration: dict, lab_templ
     return test_collector
 
 
-def run_on_multiple_network_scenarios(labs_path: str, configuration: dict, lab_template: Lab, no_cache: bool = False,
-                                      live: bool = False, keep_open: bool = False, skip_report: bool = False):
+def run_on_multiple_network_scenarios(
+        labs_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
+):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
 
@@ -264,11 +289,7 @@ def parse_arguments():
         help="The path to the configuration file for the tests",
     )
 
-    parser.add_argument(
-        '-v', '--version',
-        action='version',
-        version=f'kathara-lab-checker {VERSION}'
-    )
+    parser.add_argument("-v", "--version", action="version", version=f"kathara-lab-checker {VERSION}")
 
     parser.add_argument(
         "--no-cache",
@@ -338,17 +359,23 @@ def main():
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
     logger.info(f"Parsing network scenarios template in: {conf['structure']}")
+    if not os.path.exists(conf["structure"]):
+        logger.error(f"The structure file {conf['structure']} does not exist")
+        exit(1)
+        
     template_lab = LabParser().parse(
         os.path.dirname(conf["structure"]),
         conf_name=os.path.basename(conf["structure"]),
     )
 
     if args.lab:
-        run_on_single_network_scenario(args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open,
-                                       args.skip_report)
+        run_on_single_network_scenario(
+            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+        )
     elif args.labs:
-        run_on_multiple_network_scenarios(args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open,
-                                          args.skip_report)
+        run_on_multiple_network_scenarios(
+            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+        )
 
 
 if __name__ == "__main__":

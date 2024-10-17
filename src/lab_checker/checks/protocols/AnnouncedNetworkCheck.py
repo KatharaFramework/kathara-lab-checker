@@ -3,9 +3,9 @@ import re
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output
+from lab_checker.checks.AbstractCheck import AbstractCheck
+from lab_checker.checks.CheckResult import CheckResult
+from lab_checker.utils import get_output
 
 
 class AnnouncedNetworkCheck(AbstractCheck):
@@ -34,6 +34,5 @@ class AnnouncedNetworkCheck(AbstractCheck):
             self.logger.info(f"Checking {device_name} BGP announces...")
             for network in networks:
                 check_result = self.check(device_name, protocol, network, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

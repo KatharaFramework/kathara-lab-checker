@@ -3,7 +3,7 @@ import ipaddress
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_interfaces_addresses
+from lab_checker.utils import get_interfaces_addresses
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
@@ -11,14 +11,13 @@ from .CheckResult import CheckResult
 class InterfaceIPCheck(AbstractCheck):
 
     def check(self, device_name: str, interface_number: int, ip: str, dumped_iface: dict) -> CheckResult:
-        interface_name = f"eth{interface_number}"
+        interface_name = f"eth{interface_number}" if interface_number.isnumeric() else interface_number
         self.description = f"Verifying the IP address ({ip}) assigned to {interface_name} of {device_name}"
 
         try:
             iface_info = next(filter(lambda x: x["ifname"] == f"{interface_name}", dumped_iface))
         except StopIteration:
-            return CheckResult(self.description, False,
-                               f"Interface `{interface_name}` not found on `{device_name}`")
+            return CheckResult(self.description, False, f"Interface `{interface_name}` not found on `{device_name}`")
 
         ip_address = ipaddress.ip_interface(ip)
 
@@ -35,8 +34,10 @@ class InterfaceIPCheck(AbstractCheck):
                         reason = f"The IP address has a wrong netmask ({prefix_len})"
                         return CheckResult(self.description, False, reason)
 
-        reason = (f"The interface `{iface_info['ifname']}` of `{device_name}` "
-                  f"has the following IP addresses: {assigned_ips}`.")
+        reason = (
+            f"The interface `{iface_info['ifname']}` of `{device_name}` "
+            f"has the following IP addresses: {assigned_ips}`."
+        )
         return CheckResult(self.description, False, reason)
 
     def run(self, ip_mapping: dict, lab: Lab) -> list[CheckResult]:
@@ -47,7 +48,6 @@ class InterfaceIPCheck(AbstractCheck):
                 dumped_iface = get_interfaces_addresses(device_name, lab)
                 for interface_number, ip in iface_to_ips.items():
                     check_result = self.check(device_name, interface_number, ip, dumped_iface)
-                    self.logger.info(check_result)
                     results.append(check_result)
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")

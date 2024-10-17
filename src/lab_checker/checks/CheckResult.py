@@ -1,4 +1,6 @@
-from kathara_lab_checker.utils import green, red
+import logging
+
+from lab_checker.utils import green, red
 
 
 class CheckResult:
@@ -7,6 +9,7 @@ class CheckResult:
         self.description: str = description
         self.passed: bool = passed
         self.reason: str = reason
+        logging.getLogger("kathara-lab-checker").info(self)
 
     def __str__(self) -> str:
         return f"{self.description}: {green(self.reason) if self.passed else red(self.reason)}"

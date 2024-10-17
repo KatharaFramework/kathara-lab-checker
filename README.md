@@ -21,7 +21,7 @@ The Kathará Lab Checker takes in input a configuration file specifying the test
 To run the tool you only need to run the `main.py` passing the desired configuration file.
 
 ```bash
-python3 -m kathara-lab-checker --config <path-to-the-configuration-file>
+python3 -m kathara_lab_checker --config <path-to-the-configuration-file> --labs <path-to-the-labs-directory>
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
@@ -47,7 +47,7 @@ The repository already provide a complete example with the results of the tests.
 You can re-run the example by typing the following command in the root directory of the project:
 
 ```bash
-python3 -m kathara-lab-checker --config examples/configuration_palabra.json --no-cache
+python3 -m kathara_lab_checker --config examples/palabra/configuration_palabra.json --no-cache --labs examples/palabra/labs
 ```
 
 The `--no-cache` flag force to repeat already executed tests.
@@ -68,7 +68,8 @@ In the following you will find the possible values for the configuration file.
     ], 
     "ip_mapping": {
       "<device_name>": {
-        "<interface_num>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface of the device
+        "<interface_name>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface of the device
+        "<interface_num>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface eth# of the device
       },
     },
     "daemons": {
@@ -81,7 +82,7 @@ In the following you will find the possible values for the configuration file.
     "kernel_routes": { 
       "<device_name>": [
         "<route>", # Check the presence of the route in the data-plane of the device
-        "[<route>, [<iface_name_1>, <iface_name_2>]]" # Check the presence of the route in the data-plane of the device
+        "[<route>, [<iface_name_1>, <iface_name_2>, <next_hop_1>]]" # Check the presence of the route in the data-plane of the device
                                                       # And checks also that the nexthops are set on the correct interfaces
       ]
     },
@@ -119,18 +120,31 @@ In the following you will find the possible values for the configuration file.
             "<device_name>", # Check if the device has the local_ns_ip as local name server.
           ]
         },
-        "reachability": {
-          "<dns_name>": [
-            "<device_name>", # Check if device name reaches the dns_name
-          ]
+        "records": {
+		  "A": { # The software can check for every type of DNS records
+			"<dns_name>": [
+				"<ip>" # Check if the dns_name is resolved to the ip
+			]
+		  }
         }
       }
     },
     "reachability": { # Check reachability between devices
       "<device_name>": [
         "<ip>", # Check if the device reaches the ip
+        "<dns_name>", # Check if the device reaches the dns_name
       ],
-    }
+    },
+	"custom_commands": { # Execute a command inside a device and checks the output
+		"<device_name>": [
+			{
+				"command": "<command>", # Command to execute
+				"regex_match": "<regex>", # Check if the output matches the regex
+				"output": "<expected_output>", # Check if the output is the expected one
+				"exit_code": <expected_exit_code> # Check if the command exit code is the expected one
+			}
+		]
+	}
   }
 }
 ```

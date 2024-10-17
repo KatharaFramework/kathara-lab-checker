@@ -4,9 +4,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output
+from lab_checker.checks.AbstractCheck import AbstractCheck
+from lab_checker.checks.CheckResult import CheckResult
+from lab_checker.utils import get_output
 
 
 class VTEPCheck(AbstractCheck):
@@ -44,6 +44,5 @@ class VTEPCheck(AbstractCheck):
             for vni in vnis:
                 self.description = f"Checking that `{device_name}` VTEP has vni `{vni}` with VTEP IP `{vtep_ip}`"
                 check_result = self.check(device_name, vni, vtep_ip, lab)
-                self.logger.info(check_result)
                 results.append(check_result)
         return results

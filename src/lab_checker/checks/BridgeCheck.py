@@ -1,9 +1,10 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_output
+from lab_checker.utils import get_output
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
@@ -22,8 +23,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
     return list(
         filter(
             lambda x: "linkinfo" in x
-            and "id" in x["linkinfo"]["info_data"]
-            and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
+                      and "id" in x["linkinfo"]["info_data"]
+                      and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
             interfaces,
         )
     ).pop()
@@ -31,7 +32,7 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 class BridgeCheck(AbstractCheck):
     def check_bridge_interfaces(
-        self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
+            self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
     ) -> (CheckResult, set[str]):
         self.description = (
             f"Checking that interfaces {expected_interfaces} "
@@ -90,8 +91,8 @@ class BridgeCheck(AbstractCheck):
             f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
         )
         if (
-            "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
-            and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
+                "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
+                and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
         ):
             return CheckResult(self.description, True, "OK")
         else:
@@ -102,11 +103,11 @@ class BridgeCheck(AbstractCheck):
             )
 
     def check_vlan_tags(
-        self,
-        device_name: str,
-        interface_name: str,
-        interface_configuration: dict,
-        actual_interface_vlan: dict,
+            self,
+            device_name: str,
+            interface_name: str,
+            interface_configuration: dict,
+            actual_interface_vlan: dict,
     ):
         self.description = (
             f"Checking that vlans `{interface_configuration['vlan_tags']}` "
@@ -124,7 +125,7 @@ class BridgeCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def check_vxlan_pvid(
-        self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
+            self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
     ):
         self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
@@ -151,7 +152,7 @@ class BridgeCheck(AbstractCheck):
         return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
 
     def check_vlan_pvid(
-        self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
+            self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
     ):
         self.description = f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}"
         pvid = set(
@@ -215,13 +216,11 @@ class BridgeCheck(AbstractCheck):
                     device_name, expected_bridge_interfaces, actual_interfaces
                 )
                 results.append(check_result)
-                self.logger.info(check_result)
 
                 if check_result.passed:
                     check_result = self.check_vlan_filtering(
                         device_name, get_interface_by_name(masters.pop(), actual_interfaces)
                     )
-                    self.logger.info(check_result)
                     results.append(check_result)
 
                     for interface_name, interface_conf in bridge_conf["interfaces"].items():
@@ -230,7 +229,6 @@ class BridgeCheck(AbstractCheck):
                         try:
                             actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
                             check_result = CheckResult(description, True, "OK")
-                            self.logger.info(check_result)
                             results.append(check_result)
                         except IndexError:
                             check_result = CheckResult(
@@ -238,7 +236,6 @@ class BridgeCheck(AbstractCheck):
                                 False,
                                 f"No VLAN found for for `{interface_name}` on `{device_name}`",
                             )
-                            self.logger.info(check_result)
                             results.append(check_result)
 
                         if actual_interface_vlans:
@@ -247,7 +244,6 @@ class BridgeCheck(AbstractCheck):
                                     device_name, interface_name, interface_conf, actual_interface_vlans
                                 )
                                 results.append(check_result)
-                                self.logger.info(check_result)
 
                             if "pvid" in interface_conf:
                                 check_result = self.check_vlan_pvid(
@@ -257,7 +253,6 @@ class BridgeCheck(AbstractCheck):
                                     actual_interface_vlans,
                                 )
                                 results.append(check_result)
-                                self.logger.info(check_result)
 
                     if "vxlan" in bridge_conf:
                         for vni, vni_info in bridge_conf["vxlan"].items():
@@ -265,5 +260,4 @@ class BridgeCheck(AbstractCheck):
                                 device_name, vni, vni_info["pvid"], actual_interfaces, actual_vlans
                             )
                             results.append(check_result)
-                            self.logger.info(check_result)
         return results
