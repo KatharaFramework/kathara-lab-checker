@@ -21,7 +21,7 @@ class CustomCommandCheck(AbstractCheck):
                 machine_name=device.name, lab_hash=lab.hash, command=command_entry["command"], stream=False
             )
 
-            stdout = stdout.decode("utf-8").strip() if stdout else stderr.decode("utf-8").strip()
+            stdout = stdout.decode("utf-8").strip() if stdout else (stderr.decode("utf-8").strip() if stderr else "")
 
             if "exit_code" in command_entry:
                 self.description = (

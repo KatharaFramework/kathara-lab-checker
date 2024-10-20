@@ -31,7 +31,7 @@ class InterfaceIPCheck(AbstractCheck):
                     if addr_info["prefixlen"] == prefix_len:
                         return CheckResult(self.description, True, "OK")
                     else:
-                        reason = f"The IP address has a wrong netmask ({prefix_len})"
+                        reason = f"The IP address has a wrong netmask ({addr_info["prefixlen"]})"
                         return CheckResult(self.description, False, reason)
 
         reason = (

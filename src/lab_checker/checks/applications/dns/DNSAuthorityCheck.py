@@ -1,6 +1,7 @@
 import re
 
 import jc
+import os
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
@@ -11,12 +12,8 @@ from lab_checker.utils import get_output, find_lines_with_string, find_device_na
 
 
 class DNSAuthorityCheck(AbstractCheck):
-    def check(
-            self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab
-    ) -> CheckResult:
-        self.description = (
-            f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
-        )
+    def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab) -> CheckResult:
+        self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
         kathara_manager: Kathara = Kathara.get_instance()
         try:
             exec_output_gen = kathara_manager.exec(
@@ -31,8 +28,8 @@ class DNSAuthorityCheck(AbstractCheck):
 
         result = jc.parse("dig", output)
         if result:
-            if result[0]["status"] == "NOERROR":
-                result = result.pop()
+            result = result.pop()
+            if result["status"] == "NOERROR" and "answer" in result:
                 root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
                 authority_ips = []
                 for root_server in root_servers:
@@ -55,36 +52,39 @@ class DNSAuthorityCheck(AbstractCheck):
                 )
                 return CheckResult(self.description, False, reason)
         else:
-            with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
-                systemctl_lines = find_lines_with_string(startup_file.readline(), "systemctl")
+            if os.path.exists(f"{device_name}.startup"):
+                with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
+                    systemctl_lines = find_lines_with_string(startup_file.readline(), "systemctl")
 
-            for line in systemctl_lines:
-                if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
-                    exec_output_gen = kathara_manager.exec(
-                        machine_name=device_name,
-                        command=f"named -d 5 -g",
-                        lab_hash=lab.hash,
-                    )
+                for line in systemctl_lines:
+                    if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
+                        exec_output_gen = kathara_manager.exec(
+                            machine_name=device_name,
+                            command=f"named -d 5 -g",
+                            lab_hash=lab.hash,
+                        )
 
-                    output = get_output(exec_output_gen)
+                        output = get_output(exec_output_gen)
 
-                    date_pattern = r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
+                        date_pattern = (
+                            r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
+                        )
 
-                    reason_list = find_lines_with_string(output, "could not")
-                    reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
-                    reason = "\n".join(reason_list_no_dates)
+                        reason_list = find_lines_with_string(output, "could not")
+                        reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
+                        reason = "\n".join(reason_list_no_dates)
 
-                    return CheckResult(self.description, False, reason)
+                        return CheckResult(self.description, False, reason)
 
             reason = f"named not started in the startup file of `{device_name}`"
             return CheckResult(self.description, False, reason)
 
     def run(
-            self,
-            zone_to_authoritative_ips: dict[str, list[str]],
-            local_nameservers: list[str],
-            ip_mapping: dict[str, dict[str, str]],
-            lab: Lab,
+        self,
+        zone_to_authoritative_ips: dict[str, list[str]],
+        local_nameservers: list[str],
+        ip_mapping: dict[str, dict[str, str]],
+        lab: Lab,
     ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():
