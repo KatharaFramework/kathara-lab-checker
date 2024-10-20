@@ -48,7 +48,7 @@ class DNSAuthorityCheck(AbstractCheck):
             else:
                 reason = (
                     f"named on {device_name} is running but answered "
-                    f"with {result[0]['status']} when quering for {domain}"
+                    f"with {result['status']} when quering for {domain}"
                 )
                 return CheckResult(self.description, False, reason)
         else:
