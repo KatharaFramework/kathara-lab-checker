@@ -1,6 +1,6 @@
 [project]
-name = "kathara-lab-checker"
-    version = "0.1.4"
+name = "kathara_lab_checker"
+    version = "0.1.5"
 description = "Tool to automatically check Kathará network scenarios based on a configuration file."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,7 +11,8 @@ authors = [
 ]
 
 maintainers = [
-    { name = "Tommaso Caiazzi", email = "contact@kathara.org" }
+    { name = "Tommaso Caiazzi", email = "contact@kathara.org" },
+    { name = "Lorenzo Ariemma", email = "contact@kathara.org" }
 ]
 
 classifiers = [
