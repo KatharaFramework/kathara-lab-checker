@@ -17,6 +17,7 @@ from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
 from lab_checker.TestCollector import TestCollector
+from lab_checker.checks.CheckResult import CheckResult
 from lab_checker.checks.BridgeCheck import BridgeCheck
 from lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
 from lab_checker.checks.CustomCommandCheck import CustomCommandCheck
@@ -53,13 +54,13 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-        lab_path: str,
-        configuration: dict,
-        lab_template: Lab,
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        skip_report: bool = False,
+    lab_path: str,
+    configuration: dict,
+    lab_template: Lab,
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    skip_report: bool = False,
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -87,10 +88,14 @@ def run_on_single_network_scenario(
         CURRENT_LAB = lab
     except IOError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        return
+        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        test_collector.add_check_results(lab_name, check_results)
+        return test_collector
     except MachineCollisionDomainError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        return
+        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        test_collector.add_check_results(lab_name, check_results)
+        return test_collector
 
     if not live:
         logger.info(f"Undeploying network scenario in case it was running...")
@@ -243,13 +248,13 @@ def run_on_single_network_scenario(
 
 
 def run_on_multiple_network_scenarios(
-        labs_path: str,
-        configuration: dict,
-        lab_template: Lab,
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        skip_report: bool = False,
+    labs_path: str,
+    configuration: dict,
+    lab_template: Lab,
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    skip_report: bool = False,
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -258,12 +263,12 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-            list(
-                filter(
-                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                    os.listdir(labs_path),
-                )
+        list(
+            filter(
+                lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                os.listdir(labs_path),
             )
+        )
     ):
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
@@ -362,7 +367,7 @@ def main():
     if not os.path.exists(conf["structure"]):
         logger.error(f"The structure file {conf['structure']} does not exist")
         exit(1)
-        
+
     template_lab = LabParser().parse(
         os.path.dirname(conf["structure"]),
         conf_name=os.path.basename(conf["structure"]),
