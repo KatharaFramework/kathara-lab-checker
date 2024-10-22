@@ -40,14 +40,14 @@ directory containing all the results for each network scenario, including the re
 
 The repository already provide a complete example with the results of the tests.
 
-- Check the test configuration by inspecting: [configuration_palabra.json](examples/palabra/configuration_palabra.json).
+- Check the test configuration by inspecting: [configuration_palabra.json](examples/palabra/correction.json).
 - Check the network topology and requisites: [palabra.pdf](examples/palabra/palabra.pdf)
 - Check final results summary: [results.xlsx](examples/palabra/results.xlsx)
 
 You can re-run the example by typing the following command in the root directory of the project:
 
 ```bash
-python3 -m kathara_lab_checker --config examples/palabra/configuration_palabra.json --no-cache --labs examples/palabra/labs
+python3 -m kathara_lab_checker --config examples/palabra/correction.json --no-cache --labs examples/palabra/labs
 ```
 
 The `--no-cache` flag force to repeat already executed tests.

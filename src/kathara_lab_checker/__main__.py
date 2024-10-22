@@ -16,31 +16,32 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from lab_checker.TestCollector import TestCollector
-from lab_checker.checks.BridgeCheck import BridgeCheck
-from lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
-from lab_checker.checks.CustomCommandCheck import CustomCommandCheck
-from lab_checker.checks.DaemonCheck import DaemonCheck
-from lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
-from lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
-from lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
-from lab_checker.checks.KernelRouteCheck import KernelRouteCheck
-from lab_checker.checks.ReachabilityCheck import ReachabilityCheck
-from lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
-from lab_checker.checks.SysctlCheck import SysctlCheck
-from lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
-from lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
-from lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
-from lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
-from lab_checker.utils import reverse_dictionary
+from kathara_lab_checker.TestCollector import TestCollector
+from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
+from kathara_lab_checker.checks.CheckResult import CheckResult
+from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
+from kathara_lab_checker.checks.CustomCommandCheck import CustomCommandCheck
+from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
+from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
+from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
+from kathara_lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
+from kathara_lab_checker.checks.KernelRouteCheck import KernelRouteCheck
+from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
+from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
+from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
+from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from kathara_lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
+from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
+from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
+from kathara_lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
+from kathara_lab_checker.utils import reverse_dictionary
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -87,10 +88,14 @@ def run_on_single_network_scenario(
         CURRENT_LAB = lab
     except IOError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        return
+        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        test_collector.add_check_results(lab_name, check_results)
+        return test_collector
     except MachineCollisionDomainError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        return
+        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        test_collector.add_check_results(lab_name, check_results)
+        return test_collector
 
     if not live:
         logger.info(f"Undeploying network scenario in case it was running...")
@@ -279,7 +284,9 @@ def run_on_multiple_network_scenarios(
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="A tool for automatically check Kathará network scenarios", add_help=True
+        description="A tool for automatically check Kathará network scenarios",
+        prog="kathara_lab_checker",
+        add_help=True
     )
 
     parser.add_argument(
@@ -362,7 +369,7 @@ def main():
     if not os.path.exists(conf["structure"]):
         logger.error(f"The structure file {conf['structure']} does not exist")
         exit(1)
-        
+
     template_lab = LabParser().parse(
         os.path.dirname(conf["structure"]),
         conf_name=os.path.basename(conf["structure"]),

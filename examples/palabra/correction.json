@@ -1,6 +1,6 @@
 {
 	"convergence_time": 10,
-	"structure": "examples/palabra/palabra.conf",
+	"structure": "examples/palabra/structure",
 	"default_image": "kathara/frr",
 	"test": {
 		"requiring_startup": [
