@@ -16,32 +16,32 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from lab_checker.TestCollector import TestCollector
-from lab_checker.checks.CheckResult import CheckResult
-from lab_checker.checks.BridgeCheck import BridgeCheck
-from lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
-from lab_checker.checks.CustomCommandCheck import CustomCommandCheck
-from lab_checker.checks.DaemonCheck import DaemonCheck
-from lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
-from lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
-from lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
-from lab_checker.checks.KernelRouteCheck import KernelRouteCheck
-from lab_checker.checks.ReachabilityCheck import ReachabilityCheck
-from lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
-from lab_checker.checks.SysctlCheck import SysctlCheck
-from lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
-from lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
-from lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
-from lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
-from lab_checker.utils import reverse_dictionary
+from kathara_lab_checker.TestCollector import TestCollector
+from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
+from kathara_lab_checker.checks.CheckResult import CheckResult
+from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
+from kathara_lab_checker.checks.CustomCommandCheck import CustomCommandCheck
+from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
+from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
+from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
+from kathara_lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
+from kathara_lab_checker.checks.KernelRouteCheck import KernelRouteCheck
+from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
+from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
+from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
+from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from kathara_lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
+from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
+from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
+from kathara_lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
+from kathara_lab_checker.utils import reverse_dictionary
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -54,13 +54,13 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-    lab_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        lab_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -248,13 +248,13 @@ def run_on_single_network_scenario(
 
 
 def run_on_multiple_network_scenarios(
-    labs_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        labs_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -263,12 +263,12 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-        list(
-            filter(
-                lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                os.listdir(labs_path),
+            list(
+                filter(
+                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                    os.listdir(labs_path),
+                )
             )
-        )
     ):
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
@@ -284,7 +284,9 @@ def run_on_multiple_network_scenarios(
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="A tool for automatically check Kathará network scenarios", add_help=True
+        description="A tool for automatically check Kathará network scenarios",
+        prog="kathara_lab_checker",
+        add_help=True
     )
 
     parser.add_argument(

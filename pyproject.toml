@@ -1,6 +1,6 @@
 [project]
 name = "kathara-lab-checker"
-    version = "0.1.3"
+    version = "0.1.4"
 description = "Tool to automatically check Kathará network scenarios based on a configuration file."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kathara-lab-checker = "kathara_lab_checker:main"
+kathara_lab_checker = "kathara_lab_checker.__main__:main"
 
 [project.urls]
 "Bug Reports" = "https://github.com/KatharaFramework/kathara-lab-checker/issues"

@@ -3,7 +3,7 @@ import ipaddress
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
-from lab_checker.utils import get_interfaces_addresses
+from kathara_lab_checker.utils import get_interfaces_addresses
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 
@@ -31,7 +31,7 @@ class InterfaceIPCheck(AbstractCheck):
                     if addr_info["prefixlen"] == prefix_len:
                         return CheckResult(self.description, True, "OK")
                     else:
-                        reason = f"The IP address has a wrong netmask ({addr_info["prefixlen"]})"
+                        reason = f"The IP address has a wrong netmask ({addr_info['prefixlen']})"
                         return CheckResult(self.description, False, reason)
 
         reason = (
