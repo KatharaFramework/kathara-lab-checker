@@ -52,11 +52,12 @@ class DNSAuthorityCheck(AbstractCheck):
                 )
                 return CheckResult(self.description, False, reason)
         else:
-            if os.path.exists(f"{device_name}.startup"):
+            if lab.fs.exists(f"{device_name}.startup"):
                 with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
-                    systemctl_lines = find_lines_with_string(startup_file.readline(), "systemctl")
+                    lines = startup_file.readlines()
 
-                for line in systemctl_lines:
+                for line in lines:
+                    line = line.strip()
                     if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
                         exec_output_gen = kathara_manager.exec(
                             machine_name=device_name,
@@ -65,19 +66,22 @@ class DNSAuthorityCheck(AbstractCheck):
                         )
 
                         output = get_output(exec_output_gen)
-
                         date_pattern = (
                             r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
                         )
 
                         reason_list = find_lines_with_string(output, "could not")
+                        reason_list.extend(find_lines_with_string(output, "/etc/bind/named.conf"))
                         reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
                         reason = "\n".join(reason_list_no_dates)
 
-                        return CheckResult(self.description, False, reason)
+                        return CheckResult(self.description, False, "Configuration Error:\n" + reason)
 
-            reason = f"named not started in the startup file of `{device_name}`"
-            return CheckResult(self.description, False, reason)
+                reason = f"named not started in `{device_name}`.startup`"
+                return CheckResult(self.description, False, reason)
+            else:
+                reason = f"There is no `.startup` file for device `{device_name}`"
+                return CheckResult(self.description, False, reason)
 
     def run(
         self,
