@@ -41,7 +41,7 @@ from .checks.protocols.evpn.VTEPCheck import VTEPCheck
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .utils import reverse_dictionary
 
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 CURRENT_LAB: Optional[Lab] = None
 
 
