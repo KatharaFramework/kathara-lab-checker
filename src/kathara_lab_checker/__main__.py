@@ -263,10 +263,12 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-            list(
-                filter(
-                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                    os.listdir(labs_path),
+            sorted(
+                list(
+                    filter(
+                        lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                        os.listdir(labs_path),
+                    )
                 )
             )
     ):
