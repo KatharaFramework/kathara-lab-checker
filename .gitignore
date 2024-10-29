@@ -96,14 +96,9 @@ celerybeat-schedule
 Dockerfile~
 *.py~
 
-# builds
-/src/kathara.build/
-/src/kathara.dist/
-
 # Packages
 *.rpm
 *.tar.zst
-
 
 /config
 /.vscode/
