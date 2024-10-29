@@ -3,7 +3,7 @@ import ipaddress
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_interfaces_addresses
+from ..utils import get_interfaces_addresses
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
 

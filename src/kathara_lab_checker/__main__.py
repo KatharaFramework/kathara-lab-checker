@@ -16,30 +16,30 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from kathara_lab_checker.TestCollector import TestCollector
-from kathara_lab_checker.checks.BridgeCheck import BridgeCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.checks.CollisionDomainCheck import CollisionDomainCheck
-from kathara_lab_checker.checks.CustomCommandCheck import CustomCommandCheck
-from kathara_lab_checker.checks.DaemonCheck import DaemonCheck
-from kathara_lab_checker.checks.DeviceExistenceCheck import DeviceExistenceCheck
-from kathara_lab_checker.checks.IPv6EnabledCheck import IPv6EnabledCheck
-from kathara_lab_checker.checks.InterfaceIPCheck import InterfaceIPCheck
-from kathara_lab_checker.checks.KernelRouteCheck import KernelRouteCheck
-from kathara_lab_checker.checks.ReachabilityCheck import ReachabilityCheck
-from kathara_lab_checker.checks.StartupExistenceCheck import StartupExistenceCheck
-from kathara_lab_checker.checks.SysctlCheck import SysctlCheck
-from kathara_lab_checker.checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from kathara_lab_checker.checks.applications.dns.DNSRecordCheck import DNSRecordCheck
-from kathara_lab_checker.checks.applications.dns.LocalNSCheck import LocalNSCheck
-from kathara_lab_checker.checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from kathara_lab_checker.checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from kathara_lab_checker.checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
-from kathara_lab_checker.checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from kathara_lab_checker.checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from kathara_lab_checker.checks.protocols.evpn.VTEPCheck import VTEPCheck
-from kathara_lab_checker.excel_utils import write_final_results_to_excel, write_result_to_excel
-from kathara_lab_checker.utils import reverse_dictionary
+from .TestCollector import TestCollector
+from .checks.BridgeCheck import BridgeCheck
+from .checks.CheckResult import CheckResult
+from .checks.CollisionDomainCheck import CollisionDomainCheck
+from .checks.CustomCommandCheck import CustomCommandCheck
+from .checks.DaemonCheck import DaemonCheck
+from .checks.DeviceExistenceCheck import DeviceExistenceCheck
+from .checks.IPv6EnabledCheck import IPv6EnabledCheck
+from .checks.InterfaceIPCheck import InterfaceIPCheck
+from .checks.KernelRouteCheck import KernelRouteCheck
+from .checks.ReachabilityCheck import ReachabilityCheck
+from .checks.StartupExistenceCheck import StartupExistenceCheck
+from .checks.SysctlCheck import SysctlCheck
+from .checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
+from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from .checks.applications.dns.LocalNSCheck import LocalNSCheck
+from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
+from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from .checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
+from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
+from .checks.protocols.evpn.VTEPCheck import VTEPCheck
+from .excel_utils import write_final_results_to_excel, write_result_to_excel
+from .utils import reverse_dictionary
 
 VERSION = "0.1.5"
 CURRENT_LAB: Optional[Lab] = None

@@ -1,6 +1,6 @@
 import logging
 
-from kathara_lab_checker.utils import green, red
+from ..utils import green, red
 
 
 class CheckResult:

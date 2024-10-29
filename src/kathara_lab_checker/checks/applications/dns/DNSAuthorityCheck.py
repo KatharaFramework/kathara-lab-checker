@@ -6,9 +6,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.checks.AbstractCheck import AbstractCheck
-from kathara_lab_checker.checks.CheckResult import CheckResult
-from kathara_lab_checker.utils import get_output, find_lines_with_string, find_device_name_from_ip
+from ...AbstractCheck import AbstractCheck
+from ...CheckResult import CheckResult
+from ....utils import get_output, find_lines_with_string, find_device_name_from_ip
 
 
 class DNSAuthorityCheck(AbstractCheck):
