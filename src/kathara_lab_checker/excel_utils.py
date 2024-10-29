@@ -29,7 +29,7 @@ def write_final_results_to_excel(test_collector: "TestCollectorPackage.TestColle
         if failed_tests:
             failed_string = ""
             for idx, failed in enumerate(failed_tests):
-                failed_string += f"{(idx + 1)}: {failed.reason}\n"
+                failed_string += f"{(idx + 1)}: {failed.description}: {failed.reason}\n"
             if len(failed_string) >= 32767:
                 raise Exception("ERROR: Excel cell too big")
             sheet["E" + str(index + 2)] = failed_string
