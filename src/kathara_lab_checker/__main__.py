@@ -120,7 +120,7 @@ def run_on_single_network_scenario(
     test_collector.add_check_results(lab_name, check_results)
 
     logger.info("Checking collision domains...")
-    check_results = CollisionDomainCheck().run(list(lab_template.links.values()), lab)
+    check_results = CollisionDomainCheck().run(list(lab_template.machines.values()), lab)
     test_collector.add_check_results(lab_name, check_results)
 
     if "requiring_startup" in configuration["test"]:
