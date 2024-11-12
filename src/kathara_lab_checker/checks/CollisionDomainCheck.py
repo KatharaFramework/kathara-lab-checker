@@ -1,4 +1,4 @@
-from Kathara.exceptions import LinkNotFoundError
+from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
 from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
@@ -13,7 +13,9 @@ class CollisionDomainCheck(AbstractCheck):
         try:
             machine = lab.get_machine(machine_t.name)
             for iface_num, interface in machine.interfaces.items():
-                self.description = f"Checking the collision domain attached to interface `eth{iface_num}` of `{machine_t.name}`"
+                self.description = (
+                    f"Checking the collision domain attached to interface `eth{iface_num}` of `{machine_t.name}`"
+                )
                 interface_t = machine_t.interfaces[iface_num]
                 if interface_t.link.name != interface.link.name:
                     reason = (
@@ -23,9 +25,9 @@ class CollisionDomainCheck(AbstractCheck):
                     results.append(CheckResult(self.description, False, reason))
                 else:
                     results.append(CheckResult(self.description, True, "OK"))
-
-
         except LinkNotFoundError as e:
+            results.append(CheckResult(self.description, False, str(e)))
+        except MachineNotFoundError as e:
             results.append(CheckResult(self.description, False, str(e)))
         return results
 
