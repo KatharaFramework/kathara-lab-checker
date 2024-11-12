@@ -54,13 +54,13 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-        lab_path: str,
-        configuration: dict,
-        lab_template: Lab,
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        skip_report: bool = False,
+    lab_path: str,
+    configuration: dict,
+    lab_template: Lab,
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    skip_report: bool = False,
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -248,13 +248,13 @@ def run_on_single_network_scenario(
 
 
 def run_on_multiple_network_scenarios(
-        labs_path: str,
-        configuration: dict,
-        lab_template: Lab,
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        skip_report: bool = False,
+    labs_path: str,
+    configuration: dict,
+    lab_template: Lab,
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    skip_report: bool = False,
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -263,15 +263,18 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-            sorted(
-                list(
-                    filter(
-                        lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                        os.listdir(labs_path),
-                    )
+        sorted(
+            list(
+                filter(
+                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                    os.listdir(labs_path),
                 )
-            )
+            ),
+            key=str.casefold,
+        )
     ):
+        print(lab_name)
+        continue
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
         )
@@ -288,7 +291,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="A tool for automatically check Kathará network scenarios",
         prog="kathara_lab_checker",
-        add_help=True
+        add_help=True,
     )
 
     parser.add_argument(
