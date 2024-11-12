@@ -273,8 +273,6 @@ def run_on_multiple_network_scenarios(
             key=str.casefold,
         )
     ):
-        print(lab_name)
-        continue
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
         )
