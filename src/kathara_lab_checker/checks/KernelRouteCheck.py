@@ -23,8 +23,9 @@ def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
 def get_kernel_routes(device_name: str, lab: Lab) -> list[dict[str, Any]]:
     kathara_manager = Kathara.get_instance()
     try:
-        stdout, _, _ = kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j route",
-                                            stream=False)
+        stdout, _, _ = kathara_manager.exec(
+            machine_name=device_name, lab_hash=lab.hash, command="ip -j route", stream=False
+        )
         stdout = stdout.decode("utf-8").strip()
     except MachineNotRunningError:
         return []
@@ -35,8 +36,9 @@ def get_nexthops(device_name: str, lab: Lab) -> list[dict[str, Any]]:
     kathara_manager = Kathara.get_instance()
 
     try:
-        stdout, _, _ = kathara_manager.exec(machine_name=device_name, lab_hash=lab.hash, command="ip -j nexthop",
-                                            stream=False)
+        stdout, _, _ = kathara_manager.exec(
+            machine_name=device_name, lab_hash=lab.hash, command="ip -j nexthop", stream=False
+        )
         stdout = stdout.decode("utf-8").strip()
     except MachineNotRunningError:
         return []
@@ -132,7 +134,7 @@ class KernelRouteCheck(AbstractCheck):
                 for nh in nexthops:
                     valid_ip = is_valid_ip(nh)
                     if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
-                            not valid_ip and not any(item[1] == nh for item in actual_nh)
+                        not valid_ip and not any(item[1] == nh for item in actual_nh)
                     ):
                         check_result = CheckResult(
                             self.description,
@@ -140,6 +142,16 @@ class KernelRouteCheck(AbstractCheck):
                             f"The routing table of {device_name} about route {dst} does not contain next-hop: {nh}, actual: {actual_nh}",
                         )
                         results.append(check_result)
+
+        for dst, nexthops in actual_routing_table.items():
+            if not dst in expected_routing_table.keys():
+                check_result = CheckResult(
+                    self.description,
+                    False,
+                    f"The routing table of {device_name} contains route {dst} that should not be there",
+                )
+                results.append(check_result)
+                continue
 
         if not results:
             check_result = CheckResult(self.description, True, f"OK")
