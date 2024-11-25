@@ -112,7 +112,6 @@ class KernelRouteCheck(AbstractCheck):
                 f"The routing table of {device_name} have the wrong number of routes: {len(actual_routing_table)}, expected: {len(expected_routing_table)}",
             )
             results.append(check_result)
-            return results
 
         for dst, nexthops in expected_routing_table.items():
             if not dst in actual_routing_table:
