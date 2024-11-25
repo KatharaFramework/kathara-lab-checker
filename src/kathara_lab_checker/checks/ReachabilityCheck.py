@@ -37,12 +37,10 @@ class ReachabilityCheck(AbstractCheck):
                 reason = f"`{device_name}` can reach `{destination}`." if invert else "OK"
                 return CheckResult(self.description, invert ^ True, reason)
             else:
-                reason = (
-                    "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
-                )
+                reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
                 return CheckResult(self.description, invert ^ False, reason)
         except Exception:
-            return CheckResult(self.description, False, output.strip())
+            return CheckResult(self.description, invert ^ False, output.strip())
 
     def run(self, devices_to_destinations: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
