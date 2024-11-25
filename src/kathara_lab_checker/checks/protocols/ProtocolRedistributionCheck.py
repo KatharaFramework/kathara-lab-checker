@@ -33,7 +33,7 @@ class ProtocolRedistributionCheck(AbstractCheck):
         output = get_output(exec_output_gen).split("\n")
         found = False
         for line in output:
-            if re.search(rf"^\s*redistribute\s*{injected_protocol}$", line):
+            if re.search(rf"^\s*redistribute\s*{injected_protocol}", line):
                 found = True
                 break
         if found ^ invert:
