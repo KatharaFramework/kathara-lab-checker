@@ -35,6 +35,7 @@ from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
 from .checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from .checks.protocols.evpn.VTEPCheck import VTEPCheck
@@ -169,6 +170,11 @@ def run_on_single_network_scenario(
                 if "networks" in daemon_test:
                     logger.info(f"Checking BGP announces...")
                     check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
+                    test_collector.add_check_results(lab_name, check_results)
+
+                if "routes" in daemon_test:
+                    logger.info(f"Checking BGP Routes...")
+                    check_results = BGPRoutesCheck().run(daemon_test["routes"], lab)
                     test_collector.add_check_results(lab_name, check_results)
 
                 if "evpn" in daemon_test:
