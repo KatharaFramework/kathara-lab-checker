@@ -55,7 +55,124 @@
 					"type": "object"
 				},
 				"protocols": {
-					"type": "object"
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"ripd": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"injections": {
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										"^[a-zA-Z0-9]+$": {
+											"type": "array",
+											"minItems": 1,
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							}
+						},
+						"bgpd": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"injections": {
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										"^[a-zA-Z0-9]+$": {
+											"type": "array",
+											"minItems": 1,
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"networks": {
+									"title": "Check BGP announced networks",
+									"description": "Checks whether each device is announcing the networks specified",
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										"^[a-zA-Z0-9]+$": {
+											"title": "Device name",
+											"type": "array",
+											"minItems": 1,
+											"items": {
+												"title": "Network",
+												"type": "string"
+											}
+										}
+									}
+								},
+								"neighbors": {
+									"title": "Check BGP neighbors",
+									"description": "Checks whether each device have a configured neighbor",
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										"^[a-zA-Z0-9]+$": {
+											"title": "Device name",
+											"type": "array",
+											"minItems": 1,
+											"items": {
+												"type": "object",
+												"additionalProperties": false,
+												"properties": {
+													"ip": {
+														"format": "ipv4"
+													},
+													"asn": {
+														"type": "number"
+													}
+												}
+											}
+										}
+									}
+								},
+								"routes": {
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										"^[a-zA-Z0-9]+$": {
+											"type": "array",
+											"minItems": 1,
+											"items": {
+												"type": "object",
+												"additionalProperties": false,
+												"properties": {
+													"route": {
+														"type": "string"
+													},
+													"aspath": {
+														"type": "array",
+														"items": {
+															"title": "AS-path for the route",
+															"description": "AS-path for the route, the originator is the last element",
+															"type": "array",
+															"minItems": 1,
+															"items": {
+																"type": "number"
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						},
+						"ospfd": {
+							"type": "object"
+						}
+					}
 				},
 				"reachability": {
 					"type": "object",
