@@ -10,7 +10,6 @@ from .CheckResult import CheckResult
 class ReachabilityCheck(AbstractCheck):
 
     def check(self, device_name: str, destination: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
 
         if destination.startswith("!"):
             destination = destination[1:]
@@ -21,7 +20,7 @@ class ReachabilityCheck(AbstractCheck):
             invert = False
 
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name,
                 command=f"bash -c 'ping -q -n -c 1 {destination}'",
                 lab_hash=lab.hash,

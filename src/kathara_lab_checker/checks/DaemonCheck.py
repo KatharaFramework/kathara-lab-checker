@@ -10,7 +10,6 @@ from .CheckResult import CheckResult
 class DaemonCheck(AbstractCheck):
 
     def check(self, device_name: str, daemon: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
 
         if daemon.startswith("!"):
             daemon = daemon[1:]
@@ -23,7 +22,7 @@ class DaemonCheck(AbstractCheck):
         try:
             device = lab.get_machine(device_name)
             output = get_output(
-                kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash, command=f"pgrep {daemon}")
+                self.kathara_manager.exec(machine_name=device.name, lab_hash=lab.hash, command=f"pgrep {daemon}")
             )
             if (output != "") ^ invert:
                 return CheckResult(self.description, True, "OK")

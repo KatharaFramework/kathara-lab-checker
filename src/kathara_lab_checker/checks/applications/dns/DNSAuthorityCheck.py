@@ -14,9 +14,9 @@ from ....utils import get_output, find_lines_with_string, find_device_name_from_
 class DNSAuthorityCheck(AbstractCheck):
     def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab) -> CheckResult:
         self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
-        kathara_manager: Kathara = Kathara.get_instance()
+
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name, command=f"dig NS {domain} @{device_ip}", lab_hash=lab.hash
             )
         except MachineNotRunningError as e:
@@ -33,7 +33,7 @@ class DNSAuthorityCheck(AbstractCheck):
                 root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
                 authority_ips = []
                 for root_server in root_servers:
-                    exec_output_gen = kathara_manager.exec(
+                    exec_output_gen = self.kathara_manager.exec(
                         machine_name=device_name,
                         command=f"dig +short {root_server} @{device_ip}",
                         lab_hash=lab.hash,
@@ -59,7 +59,7 @@ class DNSAuthorityCheck(AbstractCheck):
                 for line in lines:
                     line = line.strip()
                     if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
-                        exec_output_gen = kathara_manager.exec(
+                        exec_output_gen = self.kathara_manager.exec(
                             machine_name=device_name,
                             command=f"named -d 5 -g",
                             lab_hash=lab.hash,

@@ -15,10 +15,8 @@ class AnnouncedVNICheck(AbstractCheck):
         else:
             self.description = f"Check that {device_name} not announces any VNIs"
 
-        kathara_manager: Kathara = Kathara.get_instance()
-
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name, command=f"vtysh -e 'show running-config bgpd'", lab_hash=lab.hash
             )
         except Exception as e:
@@ -28,16 +26,18 @@ class AnnouncedVNICheck(AbstractCheck):
         for line in output:
             if re.search(rf"\s*advertise-all-vni\s*", line):
                 if invert:
-                    return CheckResult(self.description, False,
-                                       f"`advertise-all-vni` found in `{device_name}` bgpd configuration")
+                    return CheckResult(
+                        self.description, False, f"`advertise-all-vni` found in `{device_name}` bgpd configuration"
+                    )
                 else:
                     return CheckResult(self.description, True, "OK")
 
         if invert:
             return CheckResult(self.description, True, "OK")
         else:
-            return CheckResult(self.description, False,
-                               f"`advertise-all-vni` not found in `{device_name}` bgpd configuration")
+            return CheckResult(
+                self.description, False, f"`advertise-all-vni` not found in `{device_name}` bgpd configuration"
+            )
 
     def run(self, device_to_vnis_info: dict[str, dict], evpn_devices: list[str], lab: Lab) -> list[CheckResult]:
         results = []

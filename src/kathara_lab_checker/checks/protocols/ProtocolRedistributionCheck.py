@@ -11,7 +11,6 @@ from ...utils import get_output
 class ProtocolRedistributionCheck(AbstractCheck):
 
     def check(self, device_name: str, protocol_to_check: str, injected_protocol: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
 
         if injected_protocol.startswith("!"):
             injected_protocol = injected_protocol[1:]
@@ -22,7 +21,7 @@ class ProtocolRedistributionCheck(AbstractCheck):
             invert = False
 
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name,
                 command=f"vtysh -e 'show running-config {protocol_to_check}'",
                 lab_hash=lab.hash,

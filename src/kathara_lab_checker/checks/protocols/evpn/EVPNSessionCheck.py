@@ -11,9 +11,9 @@ from ....utils import get_output
 
 class EVPNSessionCheck(AbstractCheck):
     def check(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
+
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash
             )
         except MachineNotRunningError as e:

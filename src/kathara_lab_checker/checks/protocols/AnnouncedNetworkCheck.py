@@ -12,10 +12,8 @@ class AnnouncedNetworkCheck(AbstractCheck):
     def check(self, device_name: str, protocol: str, network: str, lab: Lab) -> CheckResult:
         self.description = f"Check {protocol} network ({network}) for {device_name}"
 
-        kathara_manager: Kathara = Kathara.get_instance()
-
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name, command=f"vtysh -e 'show running-config {protocol}'", lab_hash=lab.hash
             )
         except Exception as e:

@@ -11,11 +11,9 @@ from ....utils import get_output
 class LocalNSCheck(AbstractCheck):
 
     def check(self, local_ns_ip: str, device_name: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
-
         self.description = f"Checking that `{local_ns_ip}` is the local name server for device `{device_name}`"
 
-        exec_output_gen = kathara_manager.exec(
+        exec_output_gen = self.kathara_manager.exec(
             machine_name=device_name, command=f"cat /etc/resolv.conf", lab_hash=lab.hash
         )
         output = get_output(exec_output_gen)
@@ -35,9 +33,12 @@ class LocalNSCheck(AbstractCheck):
                     return CheckResult(self.description, True, "OK")
                 actual_ips.append(actual_ns_ip)
 
-        reason = (f"There is no local name server for device `{device_name}` with IP `{local_ns_ip}`. "
-                  f"Actual nameservers: {actual_ips}")
+        reason = (
+            f"There is no local name server for device `{device_name}` with IP `{local_ns_ip}`. "
+            f"Actual nameservers: {actual_ips}"
+        )
         return CheckResult(self.description, False, reason)
+
     def run(self, local_nameservers_to_devices: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
         for local_ns, managed_devices in local_nameservers_to_devices.items():

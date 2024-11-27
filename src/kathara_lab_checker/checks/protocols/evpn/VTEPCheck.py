@@ -11,9 +11,8 @@ from ....utils import get_output
 
 class VTEPCheck(AbstractCheck):
     def check(self, device_name: str, vni: str, vtep_ip: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name, command="ip -d -j link show type vxlan", lab_hash=lab.hash
             )
         except MachineNotRunningError as e:
@@ -26,12 +25,14 @@ class VTEPCheck(AbstractCheck):
         output = json.loads(output)
 
         for route in output:
-            if route['linkinfo']['info_data']['id'] == int(vni):
-                if route['linkinfo']['info_data']['local'] == vtep_ip:
+            if route["linkinfo"]["info_data"]["id"] == int(vni):
+                if route["linkinfo"]["info_data"]["local"] == vtep_ip:
                     return CheckResult(self.description, True, "OK")
                 else:
-                    reason = (f"VNI `{vni}` configured on device `{device_name}` with wrong "
-                              f"VTEP IP {route['linkinfo']['info_data']['local']} (instead of {vtep_ip})")
+                    reason = (
+                        f"VNI `{vni}` configured on device `{device_name}` with wrong "
+                        f"VTEP IP {route['linkinfo']['info_data']['local']} (instead of {vtep_ip})"
+                    )
                     return CheckResult(self.description, False, reason)
         return CheckResult(self.description, False, f"VNI `{vni}` not configured on device `{device_name}`")
 
@@ -39,8 +40,8 @@ class VTEPCheck(AbstractCheck):
         results = []
         for device_name, vnis_info in device_to_vnis_info.items():
             self.logger.info(f"Checking {device_name} VTEP configuration...")
-            vnis = vnis_info['vnis']
-            vtep_ip = vnis_info['ip']
+            vnis = vnis_info["vnis"]
+            vtep_ip = vnis_info["ip"]
             for vni in vnis:
                 self.description = f"Checking that `{device_name}` VTEP has vni `{vni}` with VTEP IP `{vtep_ip}`"
                 check_result = self.check(device_name, vni, vtep_ip, lab)

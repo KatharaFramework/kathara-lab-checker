@@ -12,12 +12,11 @@ from .CheckResult import CheckResult
 class CustomCommandCheck(AbstractCheck):
 
     def check(self, device_name: str, command_entry: dict[str, str | int], lab: Lab) -> list[CheckResult]:
-        kathara_manager: Kathara = Kathara.get_instance()
 
         results = []
         try:
             device = lab.get_machine(device_name)
-            stdout, stderr, exit_code = kathara_manager.exec(
+            stdout, stderr, exit_code = self.kathara_manager.exec(
                 machine_name=device.name, lab_hash=lab.hash, command=command_entry["command"], stream=False
             )
 
