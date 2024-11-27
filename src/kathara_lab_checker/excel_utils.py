@@ -4,8 +4,11 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 
+from .checks.CheckResult import CheckResult
+from .TestCollector import TestCollector
 
-def write_final_results_to_excel(test_collector: "TestCollectorPackage.TestCollector", path: str):
+
+def write_final_results_to_excel(test_collector: TestCollector, path: str):
     # Create a new Excel workbook
     workbook = Workbook()
 
@@ -47,12 +50,12 @@ def _write_sheet_row(sheet: Worksheet, column: int, description: str, passed: st
     sheet["C" + str(column + 2)] = reason
 
 
-def write_result_to_excel(check_results: list["CheckResultPackage.CheckResult"], path: str):
+def write_result_to_excel(check_results: list[CheckResult], path: str):
     # Create a new Excel workbook
     workbook: Workbook = Workbook()
 
     workbook.create_sheet("Summary", 0)
-    sheet_summary = workbook.get_sheet_by_name("Summary")
+    sheet_summary = workbook["Summary"]
     sheet_summary["A1"] = "Total Tests"
     sheet_summary["B1"] = "Passed Tests"
     sheet_summary["C1"] = "Failed"
@@ -67,13 +70,13 @@ def write_result_to_excel(check_results: list["CheckResultPackage.CheckResult"],
 
     # Select the active sheet
     workbook.create_sheet("All", 1)
-    sheet_all = workbook.get_sheet_by_name("All")
+    sheet_all = workbook["All"]
     sheet_all["A1"] = "Tests Description"
     sheet_all["B1"] = "Passed"
     sheet_all["C1"] = "Reason"
 
     workbook.create_sheet("Failed", 2)
-    sheet_failed = workbook.get_sheet_by_name("Failed")
+    sheet_failed = workbook["Failed"]
     sheet_failed["A1"] = "Tests Description"
     sheet_failed["B1"] = "Passed"
     sheet_failed["C1"] = "Reason"

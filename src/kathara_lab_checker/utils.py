@@ -1,8 +1,5 @@
 from typing import Optional
 
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
-
 
 def red(s):
     return f"\033[91m {s}\033[00m"
