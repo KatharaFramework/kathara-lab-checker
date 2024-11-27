@@ -1,75 +1,103 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
 from ...AbstractCheck import AbstractCheck
 from ...CheckResult import CheckResult
-from ....utils import get_output
 
 
 class BGPPeeringCheck(AbstractCheck):
-    def check(self, device_name: str, neighbor_ip: str, neighbor_asn: int, lab: Lab) -> list[CheckResult]:
+    def check(self, device_name: str, neighbors: list, lab: Lab) -> list[CheckResult]:
         results = []
-        kathara_manager: Kathara = Kathara.get_instance()
+
         try:
-            exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash
+            stdout, stderr, exit_code = self.kathara_manager.exec(
+                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash, stream=False
             )
         except MachineNotRunningError as e:
-            results.append(CheckResult(self.description, False, str(e)))
+            results.append(CheckResult(f"Checking {device_name} BGP neighbors", False, str(e)))
             return results
-        output = get_output(exec_output_gen)
 
-        if output.startswith("ERROR:") or "exec failed" in output:
-            results.append(CheckResult(self.description, False, output))
+        output = stdout.decode("utf-8") if stdout else None
+
+        if stderr or exit_code != 0:
+            results.append(
+                CheckResult(
+                    f"Checking {device_name} BGP neighbors",
+                    False,
+                    stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}",
+                )
+            )
             return results
-        output = json.loads(output)
-        try:
-            for peer_name, peer in output["ipv4Unicast"]["peers"].items():
-                if neighbor_ip == peer_name:
-                    if peer["remoteAs"] != neighbor_asn:
-                        results.append(
-                            CheckResult(
-                                self.description,
-                                False,
-                                f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]}",
-                            )
-                        )
-                    else:
-                        results.append(
-                            CheckResult(
-                                self.description,
-                                True,
-                                f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]}",
-                            )
-                        )
-                    if peer["state"] == "Established":
-                        results.append(CheckResult(self.description, True, "OK"))
-                    else:
-                        results.append(
-                            CheckResult(
-                                self.description,
-                                False,
-                                f"The session is configured but is in the {peer['state']} state",
-                            )
-                        )
-                    return results
-        except KeyError:
-            pass
-        reason = f"The peering between {device_name} and {neighbor_ip} is not up."
-        results.append(CheckResult(self.description, False, reason))
+        output = json.loads(output)["ipv4Unicast"]["peers"]
+
+        if len(output) > len(neighbors):
+            router_neighbors = output.keys()
+            expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
+            results.append(
+                CheckResult(
+                    f"Checking {device_name} BGP neighbors",
+                    False,
+                    f"{device_name} has {len(output)-len(neighbors)} extra BGP neighbors {router_neighbors - expected_neighbors}",
+                )
+            )
+
+        for neighbor in neighbors:
+            neighbor_ip = neighbor["ip"]
+            neighbor_asn = neighbor["asn"]
+
+            if not neighbor_ip in output:
+                results.append(
+                    CheckResult(
+                        self.description,
+                        False,
+                        f"The peering between {device_name} and {neighbor_ip} is not configured.",
+                    )
+                )
+                continue
+
+            peer = output[neighbor_ip]
+
+            if peer["remoteAs"] != neighbor_asn:
+                results.append(
+                    CheckResult(
+                        f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}",
+                        False,
+                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]} instead of {neighbor_asn}",
+                    )
+                )
+            else:
+                results.append(
+                    CheckResult(
+                        f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}",
+                        True,
+                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]}",
+                    )
+                )
+            if peer["state"] == "Established":
+                results.append(
+                    CheckResult(
+                        f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn} established",
+                        True,
+                        "OK",
+                    )
+                )
+            else:
+                results.append(
+                    CheckResult(
+                        f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}",
+                        False,
+                        f"The session is configured but is in the {peer['state']} state",
+                    )
+                )
+
         return results
 
     def run(self, device_to_neighbours: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
         results = []
         for device_name, neighbors in device_to_neighbours.items():
             self.logger.info(f"Checking {device_name} BGP peerings...")
-            for neighbor in neighbors:
-                neighbor_ip = neighbor["ip"]
-                neighbor_asn = neighbor["asn"]
-                self.description = f"{device_name} has bgp neighbor {neighbor_ip}"
-                check_result = self.check(device_name, neighbor_ip, neighbor_asn, lab)
-                results.extend(check_result)
+            check_result = self.check(device_name, neighbors, lab)
+            results.extend(check_result)
         return results
