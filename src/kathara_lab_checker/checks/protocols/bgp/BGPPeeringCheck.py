@@ -32,14 +32,26 @@ class BGPPeeringCheck(AbstractCheck):
             return results
         output = json.loads(output)["ipv4Unicast"]["peers"]
 
-        if len(output) > len(neighbors):
-            router_neighbors = output.keys()
-            expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
+        router_neighbors = output.keys()
+        expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
+
+        if len(router_neighbors) > len(expected_neighbors):
             results.append(
                 CheckResult(
                     f"Checking {device_name} BGP neighbors",
                     False,
                     f"{device_name} has {len(output)-len(neighbors)} extra BGP neighbors {router_neighbors - expected_neighbors}",
+                )
+            )
+
+        diff_neighbors = router_neighbors - expected_neighbors
+
+        if diff_neighbors:
+            results.append(
+                CheckResult(
+                    f"Checking {device_name} BGP neighbors",
+                    False,
+                    f"{device_name} has extra BGP neighbors {diff_neighbors}",
                 )
             )
 
@@ -50,7 +62,7 @@ class BGPPeeringCheck(AbstractCheck):
             if not neighbor_ip in output:
                 results.append(
                     CheckResult(
-                        self.description,
+                        f"Checking {device_name} BGP neighbors",
                         False,
                         f"The peering between {device_name} and {neighbor_ip} is not configured.",
                     )

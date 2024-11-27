@@ -51,7 +51,7 @@ class BGPRoutesCheck(AbstractCheck):
                     CheckResult(
                         self.description,
                         False,
-                        f"BGP network {network["route"]} has a different number of alternatives.",
+                        f"BGP network {network["route"]} has a different number of alternatives. Expected: {len(network["aspath"])} Actual: {len(router_route)}",
                     )
                 )
                 continue
