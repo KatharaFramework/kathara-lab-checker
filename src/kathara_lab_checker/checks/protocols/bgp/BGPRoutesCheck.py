@@ -1,21 +1,19 @@
 import json
 
-from Kathara.model.Lab import Lab
-
 from ...AbstractCheck import AbstractCheck
 from ...CheckResult import CheckResult
 
 
 class BGPRoutesCheck(AbstractCheck):
 
-    def check(self, device_name: str, networks: list, lab: Lab) -> list[CheckResult]:
+    def check(self, device_name: str, networks: list) -> list[CheckResult]:
         results = []
 
         self.description = f"Check BGP routes for {device_name}"
 
         try:
             stdout, stderr, exit_code = self.kathara_manager.exec(
-                machine_name=device_name, command=f"vtysh -e 'show ip bgp json'", lab_hash=lab.hash, stream=False
+                machine_name=device_name, command=f"vtysh -e 'show ip bgp json'", lab_hash=self.lab.hash, stream=False
             )
         except Exception as e:
             results.append(CheckResult(self.description, False, str(e)))
@@ -73,10 +71,10 @@ class BGPRoutesCheck(AbstractCheck):
 
         return results
 
-    def run(self, devices_to_networks: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_networks: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, networks in devices_to_networks.items():
             self.logger.info(f"Checking {device_name} BGP routes...")
-            check_result = self.check(device_name, networks, lab)
+            check_result = self.check(device_name, networks)
             results.extend(check_result)
         return results

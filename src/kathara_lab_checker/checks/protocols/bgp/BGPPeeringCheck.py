@@ -1,19 +1,21 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.model.Lab import Lab
 
 from ...AbstractCheck import AbstractCheck
 from ...CheckResult import CheckResult
 
 
 class BGPPeeringCheck(AbstractCheck):
-    def check(self, device_name: str, neighbors: list, lab: Lab) -> list[CheckResult]:
+    def check(self, device_name: str, neighbors: list) -> list[CheckResult]:
         results = []
 
         try:
             stdout, stderr, exit_code = self.kathara_manager.exec(
-                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash, stream=False
+                machine_name=device_name,
+                command="vtysh -e 'show bgp summary json'",
+                lab_hash=self.lab.hash,
+                stream=False,
             )
         except MachineNotRunningError as e:
             results.append(CheckResult(f"Checking {device_name} BGP neighbors", False, str(e)))
@@ -106,10 +108,10 @@ class BGPPeeringCheck(AbstractCheck):
 
         return results
 
-    def run(self, device_to_neighbours: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, device_to_neighbours: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, neighbors in device_to_neighbours.items():
             self.logger.info(f"Checking {device_name} BGP peerings...")
-            check_result = self.check(device_name, neighbors, lab)
+            check_result = self.check(device_name, neighbors)
             results.extend(check_result)
         return results

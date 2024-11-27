@@ -1,9 +1,6 @@
-import logging
 import re
 
 from Kathara.exceptions import MachineNotFoundError
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
@@ -11,13 +8,13 @@ from .CheckResult import CheckResult
 
 class CustomCommandCheck(AbstractCheck):
 
-    def check(self, device_name: str, command_entry: dict[str, str | int], lab: Lab) -> list[CheckResult]:
+    def check(self, device_name: str, command_entry: dict[str, str | int]) -> list[CheckResult]:
 
         results = []
         try:
             device = lab.get_machine(device_name)
             stdout, stderr, exit_code = self.kathara_manager.exec(
-                machine_name=device.name, lab_hash=lab.hash, command=command_entry["command"], stream=False
+                machine_name=device.name, lab_hash=self.lab.hash, command=command_entry["command"], stream=False
             )
 
             stdout = stdout.decode("utf-8").strip() if stdout else (stderr.decode("utf-8").strip() if stderr else "")
@@ -64,10 +61,10 @@ class CustomCommandCheck(AbstractCheck):
 
         return results
 
-    def run(self, devices_to_commands: dict[str, list[dict[str, str | int]]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_commands: dict[str, list[dict[str, str | int]]]) -> list[CheckResult]:
         results = []
         for device_name, command_entries in devices_to_commands.items():
             for command_entry in command_entries:
-                check_result = self.check(device_name, command_entry, lab)
+                check_result = self.check(device_name, command_entry)
                 results.extend(check_result)
         return results

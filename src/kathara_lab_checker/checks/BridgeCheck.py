@@ -1,8 +1,6 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from kathara_lab_checker.utils import get_output
 from .AbstractCheck import AbstractCheck
@@ -159,7 +157,7 @@ class BridgeCheck(AbstractCheck):
             reason = f"No pvid configured on `{interface_name}` of `{device_name}`"
             return CheckResult(self.description, False, reason)
 
-    def run(self, devices_to_bridge_configuration: dict[str, list[dict]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_bridge_configuration: dict[str, list[dict]]) -> list[CheckResult]:
         results = []
         for device_name, bridges_configuration in devices_to_bridge_configuration.items():
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
@@ -167,14 +165,14 @@ class BridgeCheck(AbstractCheck):
                 ip_link_output = get_output(
                     self.kathara_managerexec(
                         machine_name=device_name,
-                        lab_hash=lab.hash,
+                        lab_hash=self.lab.hash,
                         command="ip -d -j link",
                     )
                 )
                 bridge_vlan_output = get_output(
                     self.kathara_manager.exec(
                         machine_name=device_name,
-                        lab_hash=lab.hash,
+                        lab_hash=self.lab.hash,
                         command="bridge -j vlan",
                     )
                 )

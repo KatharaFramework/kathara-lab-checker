@@ -3,8 +3,6 @@ import json
 from typing import Union, Any
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from .AbstractCheck import AbstractCheck
 from .CheckResult import CheckResult
@@ -29,12 +27,12 @@ def is_valid_ip(ip_str):
 
 
 class KernelRouteCheck(AbstractCheck):
-    def check(self, device_name: str, expected_routing_table: list, lab: Lab) -> list[CheckResult]:
+    def check(self, device_name: str, expected_routing_table: list) -> list[CheckResult]:
         self.description = f"Checking the routing table of {device_name}"
         actual_routing_table = dict(
             filter(
                 lambda item: not any("d.c." in elem for elem in item[1]),
-                self.load_routes_from_device(device_name, lab).items(),
+                self.load_routes_from_device(device_name).items(),
             )
         )
         expected_routing_table = load_routes_from_expected(expected_routing_table)
@@ -94,32 +92,32 @@ class KernelRouteCheck(AbstractCheck):
 
         return results
 
-    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]]) -> list[CheckResult]:
         results = []
         for device_name, expected_routes in devices_to_routes.items():
             self.logger.info(f"Checking kernel routes for `{device_name}`...")
             try:
-                check_result = self.check(device_name, expected_routes, lab)
+                check_result = self.check(device_name, expected_routes)
                 results = results + check_result
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
         return results
 
-    def get_kernel_routes(self, device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    def get_kernel_routes(self, device_name: str) -> list[dict[str, Any]]:
         try:
             stdout, _, _ = self.kathara_manager.exec(
-                machine_name=device_name, lab_hash=lab.hash, command="ip -j route", stream=False
+                machine_name=device_name, lab_hash=self.lab.hash, command="ip -j route", stream=False
             )
             stdout = stdout.decode("utf-8").strip()
         except MachineNotRunningError:
             return []
         return json.loads(stdout)
 
-    def get_nexthops(self, device_name: str, lab: Lab) -> list[dict[str, Any]]:
+    def get_nexthops(self, device_name: str) -> list[dict[str, Any]]:
 
         try:
             stdout, _, _ = self.kathara_manager.exec(
-                machine_name=device_name, lab_hash=lab.hash, command="ip -j nexthop", stream=False
+                machine_name=device_name, lab_hash=self.lab.hash, command="ip -j nexthop", stream=False
             )
             stdout = stdout.decode("utf-8").strip()
         except MachineNotRunningError:
@@ -127,8 +125,8 @@ class KernelRouteCheck(AbstractCheck):
 
         return json.loads(stdout)
 
-    def load_routes_from_device(self, device_name: str, lab: Lab) -> dict[str, set]:
-        ip_route_output = self.get_kernel_routes(device_name, lab)
+    def load_routes_from_device(self, device_name: str) -> dict[str, set]:
+        ip_route_output = self.get_kernel_routes(device_name)
         routes = {}
         kernel_nexthops = None
 
@@ -148,7 +146,7 @@ class KernelRouteCheck(AbstractCheck):
                 nexthops = [(route["via"]["host"], route["dev"])]
             elif "nhid" in route:
                 # Lazy load nexthops
-                kernel_nexthops = self.get_nexthops(device_name, lab) if kernel_nexthops is None else kernel_nexthops
+                kernel_nexthops = self.get_nexthops(device_name) if kernel_nexthops is None else kernel_nexthops
 
                 current_nexthop = [obj for obj in kernel_nexthops if obj["id"] == route["nhid"]][0]
                 if "gateway" in current_nexthop:

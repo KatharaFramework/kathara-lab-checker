@@ -1,8 +1,6 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from ...AbstractCheck import AbstractCheck
 from ...CheckResult import CheckResult
@@ -10,11 +8,11 @@ from ....utils import get_output
 
 
 class EVPNSessionCheck(AbstractCheck):
-    def check(self, device_name: str, neighbor: str, lab: Lab) -> CheckResult:
+    def check(self, device_name: str, neighbor: str) -> CheckResult:
 
         try:
             exec_output_gen = self.kathara_manager.exec(
-                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=lab.hash
+                machine_name=device_name, command="vtysh -e 'show bgp summary json'", lab_hash=self.lab.hash
             )
         except MachineNotRunningError as e:
             return CheckResult(self.description, False, str(e))
@@ -47,12 +45,12 @@ class EVPNSessionCheck(AbstractCheck):
                 self.description, False, f"`l2VpnEvpn` address family not active for bgp on {device_name}"
             )
 
-    def run(self, device_to_neighbours: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, device_to_neighbours: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, neighbors in device_to_neighbours.items():
             self.logger.info(f"Checking that {device_name} has `address-family l2vpn evpn` activated...")
             for neighbor in neighbors:
                 self.description = f"{device_name} has bgp peer {neighbor}"
-                check_result = self.check(device_name, neighbor, lab)
+                check_result = self.check(device_name, neighbor)
                 results.append(check_result)
         return results
