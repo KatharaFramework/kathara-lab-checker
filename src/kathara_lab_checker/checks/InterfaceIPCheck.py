@@ -1,4 +1,5 @@
 import ipaddress
+import json
 
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
@@ -54,10 +55,8 @@ class InterfaceIPCheck(AbstractCheck):
 
     def get_interfaces_addresses(self, device_name: str, lab: Lab) -> dict:
 
-        exec_output_gen = self.kathara_manager.exec(
-            machine_name=device_name,
-            command=f"ip -j address",
-            lab_hash=lab.hash,
+        stdout, _, _ = self.kathara_manager.exec(
+            machine_name=device_name, command=f"ip -j address", lab_hash=lab.hash, stream=False
         )
 
-        return json.loads(get_output(exec_output_gen))
+        return json.loads(stdout)
