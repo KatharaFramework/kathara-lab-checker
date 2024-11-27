@@ -3,7 +3,7 @@ import re
 from Kathara.exceptions import MachineNotFoundError
 
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 class CustomCommandCheck(AbstractCheck):

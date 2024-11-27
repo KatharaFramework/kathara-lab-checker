@@ -2,7 +2,7 @@ from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
 from Kathara.model.Machine import Machine
 
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 class CollisionDomainCheck(AbstractCheck):

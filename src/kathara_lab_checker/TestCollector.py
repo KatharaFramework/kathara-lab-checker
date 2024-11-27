@@ -1,4 +1,4 @@
-from .checks.CheckResult import CheckResult
+from .model.CheckResult import CheckResult
 
 
 class TestCollector:

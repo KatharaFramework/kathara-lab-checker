@@ -4,7 +4,7 @@ from Kathara.exceptions import MachineNotRunningError
 
 from kathara_lab_checker.utils import get_output
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 def filter_by_interface_type(interface_type: str, interfaces: list[dict]):

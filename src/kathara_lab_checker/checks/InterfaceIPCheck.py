@@ -4,7 +4,7 @@ import json
 from Kathara.exceptions import MachineNotRunningError
 
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 class InterfaceIPCheck(AbstractCheck):

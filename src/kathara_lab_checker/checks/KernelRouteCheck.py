@@ -5,7 +5,7 @@ from typing import Union, Any
 from Kathara.exceptions import MachineNotRunningError
 
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 def load_routes_from_expected(expected_routes: list) -> dict[str, set]:

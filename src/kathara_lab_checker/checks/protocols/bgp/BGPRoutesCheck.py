@@ -1,7 +1,7 @@
 import json
 
 from ...AbstractCheck import AbstractCheck
-from ...CheckResult import CheckResult
+from ....model.CheckResult import CheckResult
 
 
 class BGPRoutesCheck(AbstractCheck):

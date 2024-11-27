@@ -4,7 +4,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 
-from .checks.CheckResult import CheckResult
+from .model.CheckResult import CheckResult
 from .TestCollector import TestCollector
 
 

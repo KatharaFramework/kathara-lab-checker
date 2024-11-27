@@ -15,11 +15,13 @@ from Kathara.model.Lab import Lab
 from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
+import jsonschema
+from importlib import resources as impresources
 
-
+from . import schemas
 from .TestCollector import TestCollector
 from .checks.BridgeCheck import BridgeCheck
-from .checks.CheckResult import CheckResult
+from .model.CheckResult import CheckResult
 from .checks.CollisionDomainCheck import CollisionDomainCheck
 from .checks.CustomCommandCheck import CustomCommandCheck
 from .checks.DaemonCheck import DaemonCheck
@@ -370,6 +372,15 @@ def main():
     logger.info("Parsing test configuration...")
     with open(args.config, "r") as json_conf:
         conf = json.load(json_conf)
+
+    inp_file = impresources.files(schemas) / "root.json"
+
+    with open(inp_file, "r") as json_schema:
+        schema = json.load(json_schema)
+
+    # TODO: Validate schema
+
+    jsonschema.validate(instance=conf, schema=schema)
 
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
