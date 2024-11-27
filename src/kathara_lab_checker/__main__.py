@@ -37,7 +37,7 @@ from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
 from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from .checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from .checks.protocols.bgp.BGPNeighborCheck import BGPNeighborCheck
 from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
@@ -167,7 +167,7 @@ def run_on_single_network_scenario(
         for daemon_name, daemon_test in configuration["test"]["protocols"].items():
             if daemon_name == "bgpd":
                 logger.info(f"Check BGP peerings configurations...")
-                check_results = BGPPeeringCheck(lab).run(daemon_test["peerings"])
+                check_results = BGPNeighborCheck(lab).run(daemon_test["neighbors"])
                 test_collector.add_check_results(lab_name, check_results)
 
                 if "networks" in daemon_test:

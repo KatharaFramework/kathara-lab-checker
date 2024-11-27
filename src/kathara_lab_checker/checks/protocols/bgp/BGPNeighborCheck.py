@@ -6,7 +6,7 @@ from ...AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
 
 
-class BGPPeeringCheck(AbstractCheck):
+class BGPNeighborCheck(AbstractCheck):
     def check(self, device_name: str, neighbors: list) -> list[CheckResult]:
         results = []
 
