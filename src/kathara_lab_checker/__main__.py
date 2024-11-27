@@ -16,6 +16,7 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
+
 from .TestCollector import TestCollector
 from .checks.BridgeCheck import BridgeCheck
 from .checks.CheckResult import CheckResult
@@ -362,7 +363,6 @@ def main():
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
-    # logger.addHandler(TqdmLoggingHandler())
 
     coloredlogs.install(fmt="%(message)s", level="INFO", logger=logger)
 
