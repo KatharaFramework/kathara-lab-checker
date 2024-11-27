@@ -10,9 +10,7 @@ from .CheckResult import CheckResult
 
 
 def filter_by_interface_type(interface_type: str, interfaces: list[dict]):
-    return list(
-        filter(lambda x: "linkinfo" in x and x["linkinfo"]["info_kind"] == interface_type, interfaces)
-    )
+    return list(filter(lambda x: "linkinfo" in x and x["linkinfo"]["info_kind"] == interface_type, interfaces))
 
 
 def get_interface_by_name(interface_name: str, interfaces: list[dict]):
@@ -23,8 +21,8 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
     return list(
         filter(
             lambda x: "linkinfo" in x
-                      and "id" in x["linkinfo"]["info_data"]
-                      and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
+            and "id" in x["linkinfo"]["info_data"]
+            and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
             interfaces,
         )
     ).pop()
@@ -32,11 +30,10 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 class BridgeCheck(AbstractCheck):
     def check_bridge_interfaces(
-            self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
+        self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
     ) -> (CheckResult, set[str]):
         self.description = (
-            f"Checking that interfaces {expected_interfaces} "
-            f"are attached to the same bridge on `{device_name}`"
+            f"Checking that interfaces {expected_interfaces} " f"are attached to the same bridge on `{device_name}`"
         )
         interface_masters = {}
         interfaces_not_found = []
@@ -80,19 +77,15 @@ class BridgeCheck(AbstractCheck):
         elif masters_num > 1:
             reason = "Interfaces are not attached to the same bridge.\n"
             for interface_name, interface_master in interface_masters.items():
-                master_type = get_interface_by_name(interface_master, actual_interfaces)["linkinfo"][
-                    "info_kind"
-                ]
+                master_type = get_interface_by_name(interface_master, actual_interfaces)["linkinfo"]["info_kind"]
                 reason += f"`{interface_name}` to `{interface_master}` (type: {master_type})\n"
             return CheckResult(self.description, False, reason), masters
 
     def check_vlan_filtering(self, device_name: str, bridge_info: dict) -> CheckResult:
-        self.description = (
-            f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
-        )
+        self.description = f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
         if (
-                "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
-                and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
+            "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
+            and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
         ):
             return CheckResult(self.description, True, "OK")
         else:
@@ -103,11 +96,11 @@ class BridgeCheck(AbstractCheck):
             )
 
     def check_vlan_tags(
-            self,
-            device_name: str,
-            interface_name: str,
-            interface_configuration: dict,
-            actual_interface_vlan: dict,
+        self,
+        device_name: str,
+        interface_name: str,
+        interface_configuration: dict,
+        actual_interface_vlan: dict,
     ):
         self.description = (
             f"Checking that vlans `{interface_configuration['vlan_tags']}` "
@@ -125,7 +118,7 @@ class BridgeCheck(AbstractCheck):
             return CheckResult(self.description, False, reason)
 
     def check_vxlan_pvid(
-            self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
+        self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
     ):
         self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
@@ -136,9 +129,7 @@ class BridgeCheck(AbstractCheck):
 
         for vlan in vlans_info:
             if vlan["ifname"] == interface_name:
-                actual_pvid = set(
-                    map(lambda x: x["vlan"], filter(lambda x: "PVID" in x["flags"], vlan["vlans"]))
-                )
+                actual_pvid = set(map(lambda x: x["vlan"], filter(lambda x: "PVID" in x["flags"], vlan["vlans"])))
                 if pvid:
                     actual_pvid = actual_pvid.pop()
                     if actual_pvid == pvid:
@@ -151,13 +142,9 @@ class BridgeCheck(AbstractCheck):
                         )
         return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
 
-    def check_vlan_pvid(
-            self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict
-    ):
+    def check_vlan_pvid(self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict):
         self.description = f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}"
-        pvid = set(
-            map(lambda x: x["vlan"], filter(lambda x: "PVID" in x["flags"], actual_interface_vlan["vlans"]))
-        )
+        pvid = set(map(lambda x: x["vlan"], filter(lambda x: "PVID" in x["flags"], actual_interface_vlan["vlans"])))
         if pvid:
             actual_pvid = pvid.pop()
             if interface_pvid == actual_pvid:
@@ -178,14 +165,14 @@ class BridgeCheck(AbstractCheck):
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
             try:
                 ip_link_output = get_output(
-                    Kathara.get_instance().exec(
+                    self.kathara_managerexec(
                         machine_name=device_name,
                         lab_hash=lab.hash,
                         command="ip -d -j link",
                     )
                 )
                 bridge_vlan_output = get_output(
-                    Kathara.get_instance().exec(
+                    self.kathara_manager.exec(
                         machine_name=device_name,
                         lab_hash=lab.hash,
                         command="bridge -j vlan",
