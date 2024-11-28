@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 
 from ...AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -52,20 +53,23 @@ class BGPRoutesCheck(AbstractCheck):
                         f"BGP network {network["route"]} has a different number of alternatives. Expected: {len(network["aspath"])} Actual: {len(router_route)}",
                     )
                 )
-                continue
 
-            supposed_aspaths = {tuple(inner) for inner in network["aspath"]}
-            router_aspaths = {tuple(int(num) for num in inner["path"].split(" ")) for inner in router_route}
+            supposed_aspaths = list(tuple(inner) for inner in network["aspath"])
+            router_aspaths = list(tuple(int(num) for num in inner["path"].split(" ")) for inner in router_route)
 
-            if supposed_aspaths == router_aspaths:
+            count = Counter(supposed_aspaths)
+            count.subtract(router_aspaths)
+            dict_count = count.items()
+            dict_count = {key: value for key, value in dict_count if value != 0}
+
+            if not dict_count:
                 results.append(CheckResult(self.description, True, "OK"))
             else:
-                symmetric_difference = supposed_aspaths ^ router_aspaths
                 results.append(
                     CheckResult(
                         self.description,
                         False,
-                        f"BGP network {network["route"]} have not correct AS Paths: {symmetric_difference}",
+                        f"BGP network {network["route"]} have not correct AS Paths (supposed-actual): {dict_count}",
                     )
                 )
 
