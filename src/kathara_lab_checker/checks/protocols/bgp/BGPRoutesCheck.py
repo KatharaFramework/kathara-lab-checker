@@ -55,7 +55,9 @@ class BGPRoutesCheck(AbstractCheck):
                 )
 
             supposed_aspaths = list(tuple(inner) for inner in network["aspath"])
-            router_aspaths = list(tuple(int(num) for num in inner["path"].split(" ")) for inner in router_route)
+            router_aspaths = list(
+                tuple((int(num) if num else "") for num in inner["path"].split(" ")) for inner in router_route
+            )
 
             count = Counter(supposed_aspaths)
             count.subtract(router_aspaths)
