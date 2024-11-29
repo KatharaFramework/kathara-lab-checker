@@ -32,7 +32,31 @@ class BGPNeighborCheck(AbstractCheck):
                 )
             )
             return results
-        output = json.loads(output)["ipv4Unicast"]["peers"]
+        output = json.loads(output)
+
+        if "ipv4Unicast" in output:
+            output = output["ipv4Unicast"]
+        else:
+            results.append(
+                CheckResult(
+                    f"Checking {device_name} BGP neighbors",
+                    False,
+                    f"{device_name} has no IPv4 BGP peerings",
+                )
+            )
+            return results
+
+        if "peers" in output:
+            output = output["peers"]
+        else:
+            results.append(
+                CheckResult(
+                    f"Checking {device_name} BGP neighbors",
+                    False,
+                    f"{device_name} has no IPv4 BGP neighbors",
+                )
+            )
+            return results
 
         router_neighbors = output.keys()
         expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
