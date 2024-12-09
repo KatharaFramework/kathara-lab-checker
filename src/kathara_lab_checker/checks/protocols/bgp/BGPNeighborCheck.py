@@ -102,7 +102,7 @@ class BGPNeighborCheck(AbstractCheck):
                     CheckResult(
                         f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}",
                         False,
-                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]} instead of {neighbor_asn}",
+                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer['remoteAs']} instead of {neighbor_asn}",
                     )
                 )
             else:
@@ -110,7 +110,7 @@ class BGPNeighborCheck(AbstractCheck):
                     CheckResult(
                         f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}",
                         True,
-                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer["remoteAs"]}",
+                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer['remoteAs']}",
                     )
                 )
             if peer["state"] == "Established":

@@ -34,7 +34,7 @@ def write_final_results_to_excel(test_collector: TestCollector, path: str):
             for idx, failed in enumerate(failed_tests):
                 failed_string += f"{(idx + 1)}: {failed.description}: {failed.reason}\n"
             if len(failed_string) >= 32767:
-                raise Exception("ERROR: Excel cell too big")
+                failed_string = failed_string[:32766]
             sheet["E" + str(index + 2)] = failed_string
             sheet["E" + str(index + 2)].alignment = Alignment(wrapText=True)
         else:
@@ -93,4 +93,5 @@ def write_result_to_excel(check_results: list[CheckResult], path: str):
             )
             failed_index += 1
         _write_sheet_row(sheet_all, index, check_result.description, str(check_result.passed), check_result.reason)
+
     workbook.save(os.path.join(path, f"{os.path.basename(path)}_result.xlsx"))

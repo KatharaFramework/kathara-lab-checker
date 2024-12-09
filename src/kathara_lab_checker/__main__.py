@@ -167,8 +167,10 @@ def run_on_single_network_scenario(
         for daemon_name, daemon_test in configuration["test"]["protocols"].items():
             if daemon_name == "bgpd":
                 logger.info(f"Check BGP peerings configurations...")
-                check_results = BGPNeighborCheck(lab).run(daemon_test["neighbors"])
-                test_collector.add_check_results(lab_name, check_results)
+
+                if "neighbors" in daemon_test:
+                    check_results = BGPNeighborCheck(lab).run(daemon_test["neighbors"])
+                    test_collector.add_check_results(lab_name, check_results)
 
                 if "networks" in daemon_test:
                     logger.info(f"Checking BGP announces...")
@@ -379,7 +381,6 @@ def main():
         schema = json.load(json_schema)
 
     # TODO: Validate schema
-
     jsonschema.validate(instance=conf, schema=schema)
 
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})

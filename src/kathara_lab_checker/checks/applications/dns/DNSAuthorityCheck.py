@@ -1,6 +1,6 @@
 import re
-import jc
 
+import jc
 from Kathara.exceptions import MachineNotRunningError
 
 from ...AbstractCheck import AbstractCheck
@@ -30,12 +30,14 @@ class DNSAuthorityCheck(AbstractCheck):
                 root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
                 authority_ips = []
                 for root_server in root_servers:
-                    exec_output_gen = self.kathara_manager.exec(
+                    stdout, stderr, exit_code = self.kathara_manager.exec(
                         machine_name=device_name,
-                        command=f"dig +short {root_server} @{device_ip}",
+                        command=f"dig +short +time=5 +tries=1 {root_server} @{device_ip}",
                         lab_hash=self.lab.hash,
+                        stream=False
                     )
-                    ip = get_output(exec_output_gen).strip()
+                    ip = stdout.decode("utf-8").strip() if stdout else (
+                            stderr.decode("utf-8").strip() if stderr else "")
                     if authority_ip == ip:
                         return CheckResult(self.description, True, "OK")
                     else:
@@ -56,13 +58,16 @@ class DNSAuthorityCheck(AbstractCheck):
                 for line in lines:
                     line = line.strip()
                     if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
-                        exec_output_gen = self.kathara_manager.exec(
+                        stdout, stderr, exit_code = self.kathara_manager.exec(
                             machine_name=device_name,
-                            command=f"named -d 5 -g",
+                            command=f"timeout 2 named -d 5 -g",
                             lab_hash=self.lab.hash,
+                            stream=False
                         )
 
-                        output = get_output(exec_output_gen)
+                        output = stdout.decode("utf-8").strip() if stdout else (
+                            stderr.decode("utf-8").strip() if stderr else "")
+
                         date_pattern = (
                             r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
                         )
@@ -81,10 +86,10 @@ class DNSAuthorityCheck(AbstractCheck):
                 return CheckResult(self.description, False, reason)
 
     def run(
-        self,
-        zone_to_authoritative_ips: dict[str, list[str]],
-        local_nameservers: list[str],
-        ip_mapping: dict[str, dict[str, str]],
+            self,
+            zone_to_authoritative_ips: dict[str, list[str]],
+            local_nameservers: list[str],
+            ip_mapping: dict[str, dict[str, str]],
     ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():

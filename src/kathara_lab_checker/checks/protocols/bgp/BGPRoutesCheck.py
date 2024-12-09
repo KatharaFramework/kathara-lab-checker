@@ -39,7 +39,7 @@ class BGPRoutesCheck(AbstractCheck):
         for network in networks:
             if network["route"] not in router_routes:
                 results.append(
-                    CheckResult(self.description, False, f"Network {network["route"]} is not in BGP routing table.")
+                    CheckResult(self.description, False, f"Network {network['route']} is not in BGP routing table.")
                 )
                 continue
 
@@ -50,11 +50,11 @@ class BGPRoutesCheck(AbstractCheck):
                     CheckResult(
                         self.description,
                         False,
-                        f"BGP network {network["route"]} has a different number of alternatives. Expected: {len(network["aspath"])} Actual: {len(router_route)}",
+                        f"BGP network {network['route']} has a different number of alternatives. Expected: {len(network['aspath'])} Actual: {len(router_route)}",
                     )
                 )
 
-            supposed_aspaths = list(tuple(inner) for inner in network["aspath"])
+            supposed_aspaths = list(tuple(inner) for inner in network['aspath'])
             router_aspaths = list(
                 tuple((int(num) if num else "") for num in inner["path"].split(" ")) for inner in router_route
             )
@@ -71,7 +71,7 @@ class BGPRoutesCheck(AbstractCheck):
                     CheckResult(
                         self.description,
                         False,
-                        f"BGP network {network["route"]} have not correct AS Paths (supposed-actual): {dict_count}",
+                        f"BGP network {network['route']} have not correct AS Paths (supposed-actual): {dict_count}",
                     )
                 )
 

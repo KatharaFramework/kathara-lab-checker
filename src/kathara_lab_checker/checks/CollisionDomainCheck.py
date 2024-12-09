@@ -11,11 +11,11 @@ class CollisionDomainCheck(AbstractCheck):
         results = []
         try:
             machine = self.lab.get_machine(machine_t.name)
-            for iface_num, interface in machine.interfaces.items():
+            for iface_num, interface_t in machine_t.interfaces.items():
                 self.description = (
                     f"Checking the collision domain attached to interface `eth{iface_num}` of `{machine_t.name}`"
                 )
-                interface_t = machine_t.interfaces[iface_num]
+                interface = machine.interfaces[iface_num]
                 if interface_t.link.name != interface.link.name:
                     reason = (
                         f"Interface `{iface_num}` of device {machine_t.name} is connected to collision domain "
@@ -24,9 +24,10 @@ class CollisionDomainCheck(AbstractCheck):
                     results.append(CheckResult(self.description, False, reason))
                 else:
                     results.append(CheckResult(self.description, True, "OK"))
-        except LinkNotFoundError as e:
-            results.append(CheckResult(self.description, False, str(e)))
+        except KeyError:
+            results.append(CheckResult(self.description, False, f"No interfaces found with name `eth{iface_num}`"))
         except MachineNotFoundError as e:
+            self.description = f"Checking the collision domain attached to `{machine_t.name}`"
             results.append(CheckResult(self.description, False, str(e)))
         return results
 
