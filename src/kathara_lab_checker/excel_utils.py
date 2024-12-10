@@ -34,7 +34,9 @@ def write_final_results_to_excel(test_collector: TestCollector, path: str):
             for idx, failed in enumerate(failed_tests):
                 failed_string += f"{(idx + 1)}: {failed.description}: {failed.reason}\n"
             if len(failed_string) >= 32767:
-                failed_string = failed_string[:32766]
+                error_string = "\nEXCEL ERROR: Cell too big, not enough space for all the failed tests!"
+                failed_string = failed_string[:32766-len(error_string)]
+                failed_string += error_string
             sheet["E" + str(index + 2)] = failed_string
             sheet["E" + str(index + 2)].alignment = Alignment(wrapText=True)
         else:
