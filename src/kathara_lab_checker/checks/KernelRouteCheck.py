@@ -64,6 +64,8 @@ class KernelRouteCheck(AbstractCheck):
                     )
                     results.append(check_result)
                     continue
+
+                # nexthops and actual_nh could be a set of IPs or a set of interfaces or a mixed set
                 for nh in nexthops:
                     valid_ip = is_valid_ip(nh)
                     if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
@@ -139,7 +141,7 @@ class KernelRouteCheck(AbstractCheck):
             if "scope" in route and route["scope"] == "link":
                 nexthops = [("d.c.", route["dev"])]
             elif "nexthops" in route:
-                nexthops = list(map(lambda x: x["dev"], route["nexthops"]))
+                nexthops = list(map(lambda x: (x["via"]["host"], x["dev"]), route["nexthops"]))
             elif "gateway" in route:
                 nexthops = [(route["gateway"], route["dev"])]
             elif "via" in route:

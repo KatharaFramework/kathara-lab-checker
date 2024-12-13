@@ -163,7 +163,7 @@ class BridgeCheck(AbstractCheck):
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
             try:
                 ip_link_output = get_output(
-                    self.kathara_managerexec(
+                    self.kathara_manager.exec(
                         machine_name=device_name,
                         lab_hash=self.lab.hash,
                         command="ip -d -j link",

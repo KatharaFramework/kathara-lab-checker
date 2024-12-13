@@ -12,7 +12,7 @@ class CustomCommandCheck(AbstractCheck):
 
         results = []
         try:
-            device = lab.get_machine(device_name)
+            device = self.lab.get_machine(device_name)
             stdout, stderr, exit_code = self.kathara_manager.exec(
                 machine_name=device.name, lab_hash=self.lab.hash, command=command_entry["command"], stream=False
             )
