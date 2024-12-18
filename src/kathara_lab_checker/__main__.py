@@ -42,7 +42,7 @@ from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .model.CheckResult import CheckResult
 from .utils import reverse_dictionary
 
-VERSION = "0.1.6"
+VERSION = "0.1.7"
 CURRENT_LAB: Optional[Lab] = None
 
 
