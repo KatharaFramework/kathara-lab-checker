@@ -15,13 +15,9 @@ from Kathara.model.Lab import Lab
 from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
-import jsonschema
-from importlib import resources as impresources
 
-from . import schemas
 from .TestCollector import TestCollector
 from .checks.BridgeCheck import BridgeCheck
-from .model.CheckResult import CheckResult
 from .checks.CollisionDomainCheck import CollisionDomainCheck
 from .checks.CustomCommandCheck import CustomCommandCheck
 from .checks.DaemonCheck import DaemonCheck
@@ -43,6 +39,7 @@ from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from .checks.protocols.evpn.VTEPCheck import VTEPCheck
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
+from .model.CheckResult import CheckResult
 from .utils import reverse_dictionary
 
 VERSION = "0.1.6"
@@ -58,13 +55,13 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-    lab_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        lab_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -258,13 +255,13 @@ def run_on_single_network_scenario(
 
 
 def run_on_multiple_network_scenarios(
-    labs_path: str,
-    configuration: dict,
-    lab_template: Lab,
-    no_cache: bool = False,
-    live: bool = False,
-    keep_open: bool = False,
-    skip_report: bool = False,
+        labs_path: str,
+        configuration: dict,
+        lab_template: Lab,
+        no_cache: bool = False,
+        live: bool = False,
+        keep_open: bool = False,
+        skip_report: bool = False,
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -273,15 +270,15 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-        sorted(
-            list(
-                filter(
-                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                    os.listdir(labs_path),
-                )
-            ),
-            key=str.casefold,
-        )
+            sorted(
+                list(
+                    filter(
+                        lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                        os.listdir(labs_path),
+                    )
+                ),
+                key=str.casefold,
+            )
     ):
         test_results = run_on_single_network_scenario(
             os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
@@ -374,14 +371,6 @@ def main():
     logger.info("Parsing test configuration...")
     with open(args.config, "r") as json_conf:
         conf = json.load(json_conf)
-
-    inp_file = impresources.files(schemas) / "root.json"
-
-    with open(inp_file, "r") as json_schema:
-        schema = json.load(json_schema)
-
-    # TODO: Validate schema
-    jsonschema.validate(instance=conf, schema=schema)
 
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
