@@ -1,6 +1,6 @@
 [project]
 name = "kathara_lab_checker"
-    version = "0.1.6"
+    version = "0.1.7"
 description = "Tool to automatically check Kathará network scenarios based on a configuration file."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -43,3 +43,9 @@ kathara_lab_checker = "kathara_lab_checker.__main__:main"
 [build-system]
 requires = ["setuptools>=61.2", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src/kathara_lab_checker"]
+
+[tool.setuptools.package-data]
+schemas = ["*.json"]

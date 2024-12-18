@@ -1,17 +1,13 @@
 import re
 
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
-
 from ..AbstractCheck import AbstractCheck
-from ..CheckResult import CheckResult
+from ...model.CheckResult import CheckResult
 from ...utils import get_output
 
 
 class ProtocolRedistributionCheck(AbstractCheck):
 
-    def check(self, device_name: str, protocol_to_check: str, injected_protocol: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
+    def check(self, device_name: str, protocol_to_check: str, injected_protocol: str) -> CheckResult:
 
         if injected_protocol.startswith("!"):
             injected_protocol = injected_protocol[1:]
@@ -22,10 +18,10 @@ class ProtocolRedistributionCheck(AbstractCheck):
             invert = False
 
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name,
                 command=f"vtysh -e 'show running-config {protocol_to_check}'",
-                lab_hash=lab.hash,
+                lab_hash=self.lab.hash,
             )
         except Exception as e:
             return CheckResult(self.description, False, str(e))
@@ -33,7 +29,7 @@ class ProtocolRedistributionCheck(AbstractCheck):
         output = get_output(exec_output_gen).split("\n")
         found = False
         for line in output:
-            if re.search(rf"^\s*redistribute\s*{injected_protocol}$", line):
+            if re.search(rf"^\s*redistribute\s*{injected_protocol}", line):
                 found = True
                 break
         if found ^ invert:
@@ -42,10 +38,10 @@ class ProtocolRedistributionCheck(AbstractCheck):
             reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on `{device_name}`."
         return CheckResult(self.description, False, reason)
 
-    def run(self, protocol, devices_to_redistributed: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, protocol, devices_to_redistributed: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, injected_protocols in devices_to_redistributed.items():
             for injected_protocol in injected_protocols:
-                check_result = self.check(device_name, protocol, injected_protocol, lab)
+                check_result = self.check(device_name, protocol, injected_protocol)
                 results.append(check_result)
         return results

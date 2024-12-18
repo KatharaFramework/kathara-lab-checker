@@ -88,9 +88,10 @@ In the following you will find the possible values for the configuration file.
     },
     "protocols": { # Checks on routing protocols
       "bgpd": { # Specific checks for BGP
-        "peerings": { # Check that a peering is up
+        "neighbors": { # Check that a peering is up
           "<device_name>": [
-            "<neighbour_ip>", # Check that a peering is up between the device and the specified neighbour ip
+            {"ip": <neighbour_ip>, "asn": <neighbor_asn>}, # Check that a peering is up between the device and 
+                                                           # the specified neighbour ip
           ],
         },
         "networks": {

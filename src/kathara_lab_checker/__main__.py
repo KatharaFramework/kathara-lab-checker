@@ -18,7 +18,6 @@ from tqdm import tqdm
 
 from .TestCollector import TestCollector
 from .checks.BridgeCheck import BridgeCheck
-from .checks.CheckResult import CheckResult
 from .checks.CollisionDomainCheck import CollisionDomainCheck
 from .checks.CustomCommandCheck import CustomCommandCheck
 from .checks.DaemonCheck import DaemonCheck
@@ -34,14 +33,16 @@ from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
 from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from .checks.protocols.bgp.BGPPeeringCheck import BGPPeeringCheck
+from .checks.protocols.bgp.BGPNeighborCheck import BGPNeighborCheck
+from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from .checks.protocols.evpn.VTEPCheck import VTEPCheck
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
+from .model.CheckResult import CheckResult
 from .utils import reverse_dictionary
 
-VERSION = "0.1.6"
+VERSION = "0.1.7"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -116,46 +117,46 @@ def run_on_single_network_scenario(
     logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
 
     logger.info("Checking that all devices exist...")
-    check_results = DeviceExistenceCheck().run(list(lab_template.machines.keys()), lab)
+    check_results = DeviceExistenceCheck(lab).run(list(lab_template.machines.keys()))
     test_collector.add_check_results(lab_name, check_results)
 
     logger.info("Checking collision domains...")
-    check_results = CollisionDomainCheck().run(list(lab_template.machines.values()), lab)
+    check_results = CollisionDomainCheck(lab).run(list(lab_template.machines.values()))
     test_collector.add_check_results(lab_name, check_results)
 
     if "requiring_startup" in configuration["test"]:
         logger.info("Checking that all required startup files exist...")
-        check_results = StartupExistenceCheck().run(configuration["test"]["requiring_startup"], lab)
+        check_results = StartupExistenceCheck(lab).run(configuration["test"]["requiring_startup"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "ipv6_enabled" in configuration["test"]:
         logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
-        check_results = IPv6EnabledCheck().run(configuration["test"]["ipv6_enabled"], lab)
+        check_results = IPv6EnabledCheck(lab).run(configuration["test"]["ipv6_enabled"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "sysctls" in configuration["test"]:
         logger.info(f"Checking sysctl configurations on devices...")
-        check_results = SysctlCheck().run(configuration["test"]["sysctls"], lab)
+        check_results = SysctlCheck(lab).run(configuration["test"]["sysctls"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "ip_mapping" in configuration["test"]:
         logger.info("Verifying the IP addresses assigned to devices...")
-        check_results = InterfaceIPCheck().run(configuration["test"]["ip_mapping"], lab)
+        check_results = InterfaceIPCheck(lab).run(configuration["test"]["ip_mapping"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "bridges" in configuration["test"]:
         logger.info("Verifying the bridges inside devices...")
-        check_results = BridgeCheck().run(configuration["test"]["bridges"], lab)
+        check_results = BridgeCheck(lab).run(configuration["test"]["bridges"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "reachability" in configuration["test"]:
         logger.info(f"Starting reachability test...")
-        check_results = ReachabilityCheck().run(configuration["test"]["reachability"], lab)
+        check_results = ReachabilityCheck(lab).run(configuration["test"]["reachability"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "daemons" in configuration["test"]:
         logger.info(f"Checking if daemons are running...")
-        check_results = DaemonCheck().run(configuration["test"]["daemons"], lab)
+        check_results = DaemonCheck(lab).run(configuration["test"]["daemons"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "protocols" in configuration["test"]:
@@ -163,12 +164,19 @@ def run_on_single_network_scenario(
         for daemon_name, daemon_test in configuration["test"]["protocols"].items():
             if daemon_name == "bgpd":
                 logger.info(f"Check BGP peerings configurations...")
-                check_results = BGPPeeringCheck().run(daemon_test["peerings"], lab)
-                test_collector.add_check_results(lab_name, check_results)
+
+                if "neighbors" in daemon_test:
+                    check_results = BGPNeighborCheck(lab).run(daemon_test["neighbors"])
+                    test_collector.add_check_results(lab_name, check_results)
 
                 if "networks" in daemon_test:
                     logger.info(f"Checking BGP announces...")
-                    check_results = AnnouncedNetworkCheck().run(daemon_name, daemon_test["networks"], lab)
+                    check_results = AnnouncedNetworkCheck(lab).run(daemon_name, daemon_test["networks"])
+                    test_collector.add_check_results(lab_name, check_results)
+
+                if "routes" in daemon_test:
+                    logger.info(f"Checking BGP Routes...")
+                    check_results = BGPRoutesCheck(lab).run(daemon_test["routes"])
                     test_collector.add_check_results(lab_name, check_results)
 
                 if "evpn" in daemon_test:
@@ -177,28 +185,28 @@ def run_on_single_network_scenario(
                     for test in evpn_test:
                         if "evpn_sessions" in test:
                             logger.info(f"Checking EVPN session configuration...")
-                            check_results = EVPNSessionCheck().run(evpn_test["evpn_sessions"], lab)
+                            check_results = EVPNSessionCheck(lab).run(evpn_test["evpn_sessions"])
                             test_collector.add_check_results(lab_name, check_results)
 
                         if "vtep_devices" in test:
                             logger.info(f"Checking VTEP devices configuration...")
-                            check_results = VTEPCheck().run(evpn_test["vtep_devices"], lab)
+                            check_results = VTEPCheck(lab).run(evpn_test["vtep_devices"])
                             test_collector.add_check_results(lab_name, check_results)
 
                             logger.info(f"Checking BGP VNIs configurations...")
-                            check_results = AnnouncedVNICheck().run(
-                                evpn_test["vtep_devices"], evpn_test["evpn_sessions"], lab
+                            check_results = AnnouncedVNICheck(lab).run(
+                                evpn_test["vtep_devices"], evpn_test["evpn_sessions"]
                             )
                             test_collector.add_check_results(lab_name, check_results)
 
             if "injections" in daemon_test:
                 logger.info(f"Checking {daemon_name} protocols redistributions...")
-                check_results = ProtocolRedistributionCheck().run(daemon_name, daemon_test["injections"], lab)
+                check_results = ProtocolRedistributionCheck(lab).run(daemon_name, daemon_test["injections"])
                 test_collector.add_check_results(lab_name, check_results)
 
     if "kernel_routes" in configuration["test"]:
         logger.info(f"Checking Routing Tables...")
-        check_results = KernelRouteCheck().run(configuration["test"]["kernel_routes"], lab)
+        check_results = KernelRouteCheck(lab).run(configuration["test"]["kernel_routes"])
         test_collector.add_check_results(lab_name, check_results)
 
     if "applications" in configuration["test"]:
@@ -206,29 +214,28 @@ def run_on_single_network_scenario(
             if application_name == "dns":
                 if "authoritative" in application:
                     logger.info("Checking DNS configurations...")
-                    check_results = DNSAuthorityCheck().run(
+                    check_results = DNSAuthorityCheck(lab).run(
                         application["authoritative"],
                         list(application["local_ns"].keys()),
                         configuration["test"]["ip_mapping"],
-                        lab,
                     )
                     test_collector.add_check_results(lab_name, check_results)
 
                 if "local_ns" in application:
                     logger.info("Checking local name servers configurations...")
-                    check_results = LocalNSCheck().run(application["local_ns"], lab)
+                    check_results = LocalNSCheck(lab).run(application["local_ns"])
                     test_collector.add_check_results(lab_name, check_results)
 
                 if "records" in application:
                     logger.info(f"Starting test for DNS records...")
-                    check_results = DNSRecordCheck().run(
-                        application["records"], reverse_dictionary(application["local_ns"]).keys(), lab
+                    check_results = DNSRecordCheck(lab).run(
+                        application["records"], reverse_dictionary(application["local_ns"]).keys()
                     )
                     test_collector.add_check_results(lab_name, check_results)
 
     if "custom_commands" in configuration["test"]:
         logger.info("Checking custom commands output...")
-        check_results = CustomCommandCheck().run(configuration["test"]["custom_commands"], lab)
+        check_results = CustomCommandCheck(lab).run(configuration["test"]["custom_commands"])
         test_collector.add_check_results(lab_name, check_results)
 
     if not live and not keep_open:
@@ -269,7 +276,8 @@ def run_on_multiple_network_scenarios(
                         lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
                         os.listdir(labs_path),
                     )
-                )
+                ),
+                key=str.casefold,
             )
     ):
         test_results = run_on_single_network_scenario(
@@ -288,7 +296,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="A tool for automatically check Kathará network scenarios",
         prog="kathara_lab_checker",
-        add_help=True
+        add_help=True,
     )
 
     parser.add_argument(
@@ -355,7 +363,6 @@ def main():
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
-    # logger.addHandler(TqdmLoggingHandler())
 
     coloredlogs.install(fmt="%(message)s", level="INFO", logger=logger)
 

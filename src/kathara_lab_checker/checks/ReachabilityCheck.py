@@ -1,16 +1,13 @@
 import jc
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from ..utils import get_output
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 class ReachabilityCheck(AbstractCheck):
 
-    def check(self, device_name: str, destination: str, lab: Lab) -> CheckResult:
-        kathara_manager: Kathara = Kathara.get_instance()
+    def check(self, device_name: str, destination: str) -> CheckResult:
 
         if destination.startswith("!"):
             destination = destination[1:]
@@ -21,10 +18,10 @@ class ReachabilityCheck(AbstractCheck):
             invert = False
 
         try:
-            exec_output_gen = kathara_manager.exec(
+            exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name,
                 command=f"bash -c 'ping -q -n -c 1 {destination}'",
-                lab_hash=lab.hash,
+                lab_hash=self.lab.hash,
             )
         except Exception as e:
             return CheckResult(self.description, invert ^ False, str(e))
@@ -37,17 +34,15 @@ class ReachabilityCheck(AbstractCheck):
                 reason = f"`{device_name}` can reach `{destination}`." if invert else "OK"
                 return CheckResult(self.description, invert ^ True, reason)
             else:
-                reason = (
-                    "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
-                )
+                reason = "OK" if invert else f"`{device_name}` does not receive any answer from `{destination}`."
                 return CheckResult(self.description, invert ^ False, reason)
         except Exception:
-            return CheckResult(self.description, False, output.strip())
+            return CheckResult(self.description, invert ^ False, output.strip())
 
-    def run(self, devices_to_destinations: dict[str, list[str]], lab: Lab) -> list[CheckResult]:
+    def run(self, devices_to_destinations: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, destinations in devices_to_destinations.items():
             for destination in destinations:
-                check_result = self.check(device_name, destination, lab)
+                check_result = self.check(device_name, destination)
                 results.append(check_result)
         return results

@@ -1,8 +1,4 @@
-import json
 from typing import Optional
-
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 
 def red(s):
@@ -32,18 +28,6 @@ def get_output(exec_output):
     except StopIteration:
         pass
     return output
-
-
-def get_interfaces_addresses(device_name: str, lab: Lab) -> dict:
-    kathara_manager = Kathara.get_instance()
-
-    exec_output_gen = kathara_manager.exec(
-        machine_name=device_name,
-        command=f"ip -j address",
-        lab_hash=lab.hash,
-    )
-
-    return json.loads(get_output(exec_output_gen))
 
 
 def find_device_name_from_ip(ip_mapping: dict[str, dict[str, str]], ip_search: str) -> Optional[str]:

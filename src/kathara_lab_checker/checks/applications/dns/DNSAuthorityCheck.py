@@ -1,23 +1,20 @@
 import re
 
 import jc
-import os
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.manager.Kathara import Kathara
-from Kathara.model.Lab import Lab
 
 from ...AbstractCheck import AbstractCheck
-from ...CheckResult import CheckResult
+from ....model.CheckResult import CheckResult
 from ....utils import get_output, find_lines_with_string, find_device_name_from_ip
 
 
 class DNSAuthorityCheck(AbstractCheck):
-    def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str, lab: Lab) -> CheckResult:
+    def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str) -> CheckResult:
         self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
-        kathara_manager: Kathara = Kathara.get_instance()
+
         try:
-            exec_output_gen = kathara_manager.exec(
-                machine_name=device_name, command=f"dig NS {domain} @{device_ip}", lab_hash=lab.hash
+            exec_output_gen = self.kathara_manager.exec(
+                machine_name=device_name, command=f"dig NS {domain} @{device_ip}", lab_hash=self.lab.hash
             )
         except MachineNotRunningError as e:
             return CheckResult(self.description, False, str(e))
@@ -33,12 +30,14 @@ class DNSAuthorityCheck(AbstractCheck):
                 root_servers = list(map(lambda x: x["data"].split(" ")[0], result["answer"]))
                 authority_ips = []
                 for root_server in root_servers:
-                    exec_output_gen = kathara_manager.exec(
+                    stdout, stderr, exit_code = self.kathara_manager.exec(
                         machine_name=device_name,
-                        command=f"dig +short {root_server} @{device_ip}",
-                        lab_hash=lab.hash,
+                        command=f"dig +short +time=5 +tries=1 {root_server} @{device_ip}",
+                        lab_hash=self.lab.hash,
+                        stream=False
                     )
-                    ip = get_output(exec_output_gen).strip()
+                    ip = stdout.decode("utf-8").strip() if stdout else (
+                            stderr.decode("utf-8").strip() if stderr else "")
                     if authority_ip == ip:
                         return CheckResult(self.description, True, "OK")
                     else:
@@ -52,20 +51,23 @@ class DNSAuthorityCheck(AbstractCheck):
                 )
                 return CheckResult(self.description, False, reason)
         else:
-            if lab.fs.exists(f"{device_name}.startup"):
-                with lab.fs.open(f"{device_name}.startup", "r") as startup_file:
+            if self.lab.fs.exists(f"{device_name}.startup"):
+                with self.lab.fs.open(f"{device_name}.startup", "r") as startup_file:
                     lines = startup_file.readlines()
 
                 for line in lines:
                     line = line.strip()
                     if re.search(rf"^\s*systemctl\s*start\s*named\s*$", line):
-                        exec_output_gen = kathara_manager.exec(
+                        stdout, stderr, exit_code = self.kathara_manager.exec(
                             machine_name=device_name,
-                            command=f"named -d 5 -g",
-                            lab_hash=lab.hash,
+                            command=f"timeout 2 named -d 5 -g",
+                            lab_hash=self.lab.hash,
+                            stream=False
                         )
 
-                        output = get_output(exec_output_gen)
+                        output = stdout.decode("utf-8").strip() if stdout else (
+                            stderr.decode("utf-8").strip() if stderr else "")
+
                         date_pattern = (
                             r"\d{2}-[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{3}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3}"
                         )
@@ -84,17 +86,16 @@ class DNSAuthorityCheck(AbstractCheck):
                 return CheckResult(self.description, False, reason)
 
     def run(
-        self,
-        zone_to_authoritative_ips: dict[str, list[str]],
-        local_nameservers: list[str],
-        ip_mapping: dict[str, dict[str, str]],
-        lab: Lab,
+            self,
+            zone_to_authoritative_ips: dict[str, list[str]],
+            local_nameservers: list[str],
+            ip_mapping: dict[str, dict[str, str]],
     ) -> list[CheckResult]:
         results = []
         for domain, name_servers in zone_to_authoritative_ips.items():
             self.logger.info(f"Checking authority ip for domain `{domain}`")
             for ns in name_servers:
-                check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns, lab)
+                check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns)
                 results.append(check_result)
 
                 if domain == ".":
@@ -103,17 +104,11 @@ class DNSAuthorityCheck(AbstractCheck):
                     )
                     for generic_ns_ip in name_servers:
                         check_result = self.check(
-                            domain,
-                            ns,
-                            find_device_name_from_ip(ip_mapping, generic_ns_ip),
-                            generic_ns_ip,
-                            lab,
+                            domain, ns, find_device_name_from_ip(ip_mapping, generic_ns_ip), generic_ns_ip
                         )
                         results.append(check_result)
 
                     for local_ns in local_nameservers:
-                        check_result = self.check(
-                            domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns, lab
-                        )
+                        check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns)
                         results.append(check_result)
         return results

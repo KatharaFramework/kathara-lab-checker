@@ -1,11 +1,10 @@
 import ipaddress
+import json
 
 from Kathara.exceptions import MachineNotRunningError
-from Kathara.model.Lab import Lab
 
-from ..utils import get_interfaces_addresses
 from .AbstractCheck import AbstractCheck
-from .CheckResult import CheckResult
+from ..model.CheckResult import CheckResult
 
 
 class InterfaceIPCheck(AbstractCheck):
@@ -40,15 +39,23 @@ class InterfaceIPCheck(AbstractCheck):
         )
         return CheckResult(self.description, False, reason)
 
-    def run(self, ip_mapping: dict, lab: Lab) -> list[CheckResult]:
+    def run(self, ip_mapping: dict) -> list[CheckResult]:
         results = []
         for device_name, iface_to_ips in ip_mapping.items():
             self.logger.info(f"Checking IPs for `{device_name}`...")
             try:
-                dumped_iface = get_interfaces_addresses(device_name, lab)
+                dumped_iface = self.get_interfaces_addresses(device_name)
                 for interface_number, ip in iface_to_ips.items():
                     check_result = self.check(device_name, interface_number, ip, dumped_iface)
                     results.append(check_result)
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
         return results
+
+    def get_interfaces_addresses(self, device_name: str) -> dict:
+
+        stdout, _, _ = self.kathara_manager.exec(
+            machine_name=device_name, command=f"ip -j address", lab_hash=self.lab.hash, stream=False
+        )
+
+        return json.loads(stdout)
