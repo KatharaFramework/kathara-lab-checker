@@ -52,6 +52,9 @@ python3 -m kathara_lab_checker --config examples/palabra/correction.json --no-ca
 
 The `--no-cache` flag force to repeat already executed tests.
 
+## Running on Docker
+To build a Docker image containing both `Kathará` and the `kathara-lab-checker` tool, follow the [guide](scripts/docker).
+
 ## How to configure?
 
 In the following you will find the possible values for the configuration file.
