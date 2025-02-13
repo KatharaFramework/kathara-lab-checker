@@ -61,7 +61,7 @@ def run_on_single_network_scenario(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "xlsx",
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -247,9 +247,13 @@ def run_on_single_network_scenario(
     logger.info(f"Total Tests: {total_tests}")
     logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-    if not skip_report:
-        logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
-        write_result_to_excel(test_collector.tests[lab_name], lab_path)
+    if report_type != "none":
+        logger.info(f"Writing test report for {lab_name} in: {lab_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_result_to_excel(test_collector.tests[lab_name], lab_path)
+        elif report_type == "csv":
+            from .csv_utils import write_result_to_csv
+            write_result_to_csv(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
@@ -261,7 +265,7 @@ def run_on_multiple_network_scenarios(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "xlsx",
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -281,15 +285,19 @@ def run_on_multiple_network_scenarios(
             )
     ):
         test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
+            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, report_type
         )
 
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests and not skip_report:
-        logger.info(f"Writing All Test Results into: {labs_path}")
-        write_final_results_to_excel(test_collector, labs_path)
+    if test_collector.tests and report_type != "none":
+        logger.info(f"Writing All Test Results into: {labs_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_final_results_to_excel(test_collector, labs_path)
+        elif report_type == "csv":
+            from .csv_utils import write_final_results_to_csv
+            write_final_results_to_csv(test_collector, labs_path)
 
 
 def parse_arguments():
@@ -351,7 +359,15 @@ def parse_arguments():
         required=False,
         action="store_true",
         default=False,
-        help="Skip the generation of the report",
+        help="Skip the generation of the report (deprecated, use --report-type instead)",
+    )
+
+    parser.add_argument(
+        "--report-type",
+        required=False,
+        choices=["xlsx", "csv", "none"],
+        default="xlsx",
+        help="Report format: 'xlsx' for an Excel spreadsheet, 'csv' for a text-based report, 'none' to skip report"
     )
 
     return parser.parse_args()
@@ -359,6 +375,10 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+    
+    # backwards compatibility
+    if args.skip_report:
+        args.report_type = "none"
 
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
@@ -386,11 +406,11 @@ def main():
 
     if args.lab:
         run_on_single_network_scenario(
-            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
     elif args.labs:
         run_on_multiple_network_scenarios(
-            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
 
 
