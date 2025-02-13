@@ -1,0 +1,5 @@
+#!/bin/bash
+ip address add 10.0.23.3/24 dev eth0
+systemctl start frr
+systemctl start apache2
+
