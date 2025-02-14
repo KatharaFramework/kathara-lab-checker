@@ -56,6 +56,15 @@ The `--no-cache` flag force to repeat already executed tests.
 
 ## How to configure?
 
+The `structure` file can be written in either **JSON** or **YAML** format. With **YAML**, you may inline your Kathará lab structure under `lab_inline`. If you specify it like in the following, the tool uses it as your `structure` file automatically.
+
+```yaml
+lab_inline: |
+  router1[0]="net12"
+  router2[0]="net12"
+  ...
+```
+
 In the following you will find the possible values for the configuration file.
 
 ```
