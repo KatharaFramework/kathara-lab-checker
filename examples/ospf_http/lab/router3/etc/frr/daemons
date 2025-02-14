@@ -1,0 +1,3 @@
+# FRR daemons file - Enables ospfd
+zebra=yes
+ospfd=yes
