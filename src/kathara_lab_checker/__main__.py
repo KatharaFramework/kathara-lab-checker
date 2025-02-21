@@ -35,6 +35,9 @@ from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
 from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from .checks.protocols.ospf.OSPFNeighborCheck import OSPFNeighborCheck
+from .checks.protocols.ospf.OSPFRoutesCheck import OSPFRoutesCheck
+from .checks.protocols.ospf.OSPFInterfaceCheck import OSPFInterfaceCheck
 from .checks.protocols.bgp.BGPNeighborCheck import BGPNeighborCheck
 from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
@@ -206,6 +209,20 @@ def run_on_single_network_scenario(
                             )
                             test_collector.add_check_results(lab_name, check_results)
 
+            if daemon_name == "ospfd":
+                if "neighbors" in daemon_test:
+                    logger.info("Checking OSPF neighbors...")
+                    check_results = OSPFNeighborCheck(lab).run(daemon_test["neighbors"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "routes" in daemon_test:
+                    logger.info("Checking OSPF routes...")
+                    check_results = OSPFRoutesCheck(lab).run(daemon_test["routes"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "interfaces" in daemon_test:
+                    logger.info("Checking OSPF interface parameters...")
+                    check_results = OSPFInterfaceCheck(lab).run(daemon_test["interfaces"])
+                    test_collector.add_check_results(lab_name, check_results)
+                
             if "injections" in daemon_test:
                 logger.info(f"Checking {daemon_name} protocols redistributions...")
                 check_results = ProtocolRedistributionCheck(lab).run(daemon_name, daemon_test["injections"])
