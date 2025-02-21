@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import signal
+import tempfile
 import time
+import yaml
 from functools import partial
 from typing import Optional
 
@@ -115,7 +117,11 @@ def run_on_single_network_scenario(
 
     logger.info(f"Starting tests")
 
-    logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
+    if "lab_inline" in configuration:
+        logger.info(f"Verifying lab structure using inline lab.conf template")
+    else:
+        logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
+
 
     logger.info("Checking that all devices exist...")
     check_results = DeviceExistenceCheck(lab).run(list(lab_template.machines.keys()))
@@ -365,6 +371,32 @@ def parse_arguments():
 
     return parser.parse_args()
 
+def load_config_and_lab(config_path: str):
+    """
+    Loads a correction file as JSON or YAML. 
+    If 'lab_inline' is set, writes it to a temp file and uses that as 'structure'.
+    Returns (conf, structure_file).
+    """
+    with open(config_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    try:
+        conf = json.loads(content)
+    except ValueError:
+        try:
+            conf = yaml.safe_load(content)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Config file '{config_path}' is neither valid JSON nor YAML:\n{e}")
+
+    inline = conf.get("lab_inline", "")
+    if inline:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False) as tmp:
+            tmp.write(inline)
+            conf["structure"] = tmp.name
+
+    sfile = conf.get("structure")
+    if not sfile or not os.path.exists(sfile):
+        raise ValueError("No valid structure file found.")
+    return conf, sfile
 
 def main():
     args = parse_arguments()
@@ -378,19 +410,18 @@ def main():
     logger.propagate = False
 
     logger.info("Parsing test configuration...")
-    with open(args.config, "r") as json_conf:
-        conf = json.load(json_conf)
+    conf, structure = load_config_and_lab(args.config)
 
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
-    logger.info(f"Parsing network scenarios template in: {conf['structure']}")
-    if not os.path.exists(conf["structure"]):
-        logger.error(f"The structure file {conf['structure']} does not exist")
-        exit(1)
+    if "lab_inline" in conf:
+        logger.info(f"Parsing inline network scenarios template")
+    else:
+        logger.info(f"Parsing network scenarios template in: {structure}")
 
     template_lab = LabParser().parse(
-        os.path.dirname(conf["structure"]),
-        conf_name=os.path.basename(conf["structure"]),
+        os.path.dirname(structure),
+        conf_name=os.path.basename(structure),
     )
 
     if args.lab:
