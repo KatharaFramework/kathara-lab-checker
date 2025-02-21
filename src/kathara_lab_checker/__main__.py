@@ -43,6 +43,8 @@ from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from .checks.protocols.evpn.VTEPCheck import VTEPCheck
+from .checks.protocols.scion.SCIONAddressCheck import SCIONAddressCheck
+from .checks.protocols.scion.SCIONPathsCheck import SCIONPathsCheck
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .model.CheckResult import CheckResult
 from .utils import reverse_dictionary
@@ -222,7 +224,17 @@ def run_on_single_network_scenario(
                     logger.info("Checking OSPF interface parameters...")
                     check_results = OSPFInterfaceCheck(lab).run(daemon_test["interfaces"])
                     test_collector.add_check_results(lab_name, check_results)
-                
+
+            if daemon_name == "sciond":
+                if "address" in daemon_test:
+                    logger.info("Checking SCION addresses...")
+                    check_results = SCIONAddressCheck(lab).run(daemon_test["address"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "paths" in daemon_test:
+                    logger.info("Checking SCION paths...")
+                    check_results = SCIONPathsCheck(lab).run(daemon_test["paths"])
+                    test_collector.add_check_results(lab_name, check_results)
+
             if "injections" in daemon_test:
                 logger.info(f"Checking {daemon_name} protocols redistributions...")
                 check_results = ProtocolRedistributionCheck(lab).run(daemon_name, daemon_test["injections"])
