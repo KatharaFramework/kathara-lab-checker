@@ -32,6 +32,7 @@ from .checks.StartupExistenceCheck import StartupExistenceCheck
 from .checks.SysctlCheck import SysctlCheck
 from .checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
 from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from .checks.applications.http.HTTPCheck import HTTPCheck
 from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
@@ -268,6 +269,11 @@ def run_on_single_network_scenario(
                         application["records"], reverse_dictionary(application["local_ns"]).keys()
                     )
                     test_collector.add_check_results(lab_name, check_results)
+
+            if application_name == "http":
+                logger.info("Checking HTTP endpoints via cURL...")
+                check_results = HTTPCheck(lab).run(application)
+                test_collector.add_check_results(lab_name, check_results)            
 
     if "custom_commands" in configuration["test"]:
         logger.info("Checking custom commands output...")
