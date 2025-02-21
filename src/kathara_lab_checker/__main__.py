@@ -61,7 +61,7 @@ def run_on_single_network_scenario(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "csv",
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -76,8 +76,9 @@ def run_on_single_network_scenario(
         logger.warning(f"{lab_path} is not a lab directory.")
         return
 
-    test_results_path = os.path.join(lab_path, f"{lab_name}_result.xlsx")
-    if os.path.exists(test_results_path) and not no_cache:
+    test_results_path_xlsx = os.path.join(lab_path, f"{lab_name}_result.xlsx")
+    test_results_path_csv = os.path.join(lab_path, f"{lab_name}_result_all.csv")
+    if (os.path.exists(test_results_path_xlsx) or os.path.exists(test_results_path_csv)) and not no_cache:
         logger.warning("Network scenario already processed, skipping...")
         return
 
@@ -247,9 +248,13 @@ def run_on_single_network_scenario(
     logger.info(f"Total Tests: {total_tests}")
     logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-    if not skip_report:
-        logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
-        write_result_to_excel(test_collector.tests[lab_name], lab_path)
+    if report_type != "none":
+        logger.info(f"Writing test report for {lab_name} in: {lab_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_result_to_excel(test_collector.tests[lab_name], lab_path)
+        elif report_type == "csv":
+            from .csv_utils import write_result_to_csv
+            write_result_to_csv(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
@@ -261,7 +266,7 @@ def run_on_multiple_network_scenarios(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "csv",
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -281,15 +286,19 @@ def run_on_multiple_network_scenarios(
             )
     ):
         test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
+            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, report_type
         )
 
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests and not skip_report:
-        logger.info(f"Writing All Test Results into: {labs_path}")
-        write_final_results_to_excel(test_collector, labs_path)
+    if test_collector.tests and report_type != "none":
+        logger.info(f"Writing All Test Results into: {labs_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_final_results_to_excel(test_collector, labs_path)
+        elif report_type == "csv":
+            from .csv_utils import write_final_results_to_csv
+            write_final_results_to_csv(test_collector, labs_path)
 
 
 def parse_arguments():
@@ -347,11 +356,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--skip-report",
+        "--report-type",
         required=False,
-        action="store_true",
-        default=False,
-        help="Skip the generation of the report",
+        choices=["xlsx", "csv", "none"],
+        default="csv",
+        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report"
     )
 
     return parser.parse_args()
@@ -359,7 +368,7 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-
+    
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
@@ -386,11 +395,11 @@ def main():
 
     if args.lab:
         run_on_single_network_scenario(
-            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
     elif args.labs:
         run_on_multiple_network_scenarios(
-            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
 
 
