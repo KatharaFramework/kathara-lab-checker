@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import signal
+import tempfile
 import time
+import yaml
 from functools import partial
 from typing import Optional
 
@@ -30,14 +32,20 @@ from .checks.StartupExistenceCheck import StartupExistenceCheck
 from .checks.SysctlCheck import SysctlCheck
 from .checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
 from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
+from .checks.applications.http.HTTPCheck import HTTPCheck
 from .checks.applications.dns.LocalNSCheck import LocalNSCheck
 from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
 from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
+from .checks.protocols.ospf.OSPFNeighborCheck import OSPFNeighborCheck
+from .checks.protocols.ospf.OSPFRoutesCheck import OSPFRoutesCheck
+from .checks.protocols.ospf.OSPFInterfaceCheck import OSPFInterfaceCheck
 from .checks.protocols.bgp.BGPNeighborCheck import BGPNeighborCheck
 from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
 from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
 from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
 from .checks.protocols.evpn.VTEPCheck import VTEPCheck
+from .checks.protocols.scion.SCIONAddressCheck import SCIONAddressCheck
+from .checks.protocols.scion.SCIONPathsCheck import SCIONPathsCheck
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .model.CheckResult import CheckResult
 from .utils import reverse_dictionary
@@ -61,7 +69,7 @@ def run_on_single_network_scenario(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "csv",
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -76,8 +84,9 @@ def run_on_single_network_scenario(
         logger.warning(f"{lab_path} is not a lab directory.")
         return
 
-    test_results_path = os.path.join(lab_path, f"{lab_name}_result.xlsx")
-    if os.path.exists(test_results_path) and not no_cache:
+    test_results_path_xlsx = os.path.join(lab_path, f"{lab_name}_result.xlsx")
+    test_results_path_csv = os.path.join(lab_path, f"{lab_name}_result_all.csv")
+    if (os.path.exists(test_results_path_xlsx) or os.path.exists(test_results_path_csv)) and not no_cache:
         logger.warning("Network scenario already processed, skipping...")
         return
 
@@ -114,7 +123,11 @@ def run_on_single_network_scenario(
 
     logger.info(f"Starting tests")
 
-    logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
+    if "lab_inline" in configuration:
+        logger.info(f"Verifying lab structure using inline lab.conf template")
+    else:
+        logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
+
 
     logger.info("Checking that all devices exist...")
     check_results = DeviceExistenceCheck(lab).run(list(lab_template.machines.keys()))
@@ -199,6 +212,30 @@ def run_on_single_network_scenario(
                             )
                             test_collector.add_check_results(lab_name, check_results)
 
+            if daemon_name == "ospfd":
+                if "neighbors" in daemon_test:
+                    logger.info("Checking OSPF neighbors...")
+                    check_results = OSPFNeighborCheck(lab).run(daemon_test["neighbors"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "routes" in daemon_test:
+                    logger.info("Checking OSPF routes...")
+                    check_results = OSPFRoutesCheck(lab).run(daemon_test["routes"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "interfaces" in daemon_test:
+                    logger.info("Checking OSPF interface parameters...")
+                    check_results = OSPFInterfaceCheck(lab).run(daemon_test["interfaces"])
+                    test_collector.add_check_results(lab_name, check_results)
+
+            if daemon_name == "sciond":
+                if "address" in daemon_test:
+                    logger.info("Checking SCION addresses...")
+                    check_results = SCIONAddressCheck(lab).run(daemon_test["address"])
+                    test_collector.add_check_results(lab_name, check_results)
+                if "paths" in daemon_test:
+                    logger.info("Checking SCION paths...")
+                    check_results = SCIONPathsCheck(lab).run(daemon_test["paths"])
+                    test_collector.add_check_results(lab_name, check_results)
+
             if "injections" in daemon_test:
                 logger.info(f"Checking {daemon_name} protocols redistributions...")
                 check_results = ProtocolRedistributionCheck(lab).run(daemon_name, daemon_test["injections"])
@@ -233,6 +270,11 @@ def run_on_single_network_scenario(
                     )
                     test_collector.add_check_results(lab_name, check_results)
 
+            if application_name == "http":
+                logger.info("Checking HTTP endpoints via cURL...")
+                check_results = HTTPCheck(lab).run(application)
+                test_collector.add_check_results(lab_name, check_results)            
+
     if "custom_commands" in configuration["test"]:
         logger.info("Checking custom commands output...")
         check_results = CustomCommandCheck(lab).run(configuration["test"]["custom_commands"])
@@ -247,9 +289,13 @@ def run_on_single_network_scenario(
     logger.info(f"Total Tests: {total_tests}")
     logger.info(f"Passed Tests: {test_results.count(True)}/{total_tests}")
 
-    if not skip_report:
-        logger.info(f"Writing test report for {lab_name} in: {lab_path}...")
-        write_result_to_excel(test_collector.tests[lab_name], lab_path)
+    if report_type != "none":
+        logger.info(f"Writing test report for {lab_name} in: {lab_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_result_to_excel(test_collector.tests[lab_name], lab_path)
+        elif report_type == "csv":
+            from .csv_utils import write_result_to_csv
+            write_result_to_csv(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
@@ -261,7 +307,7 @@ def run_on_multiple_network_scenarios(
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
-        skip_report: bool = False,
+        report_type: str = "csv",
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -281,15 +327,19 @@ def run_on_multiple_network_scenarios(
             )
     ):
         test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, skip_report
+            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, report_type
         )
 
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests and not skip_report:
-        logger.info(f"Writing All Test Results into: {labs_path}")
-        write_final_results_to_excel(test_collector, labs_path)
+    if test_collector.tests and report_type != "none":
+        logger.info(f"Writing All Test Results into: {labs_path} as {report_type.upper()} report...")
+        if report_type == "xlsx":
+            write_final_results_to_excel(test_collector, labs_path)
+        elif report_type == "csv":
+            from .csv_utils import write_final_results_to_csv
+            write_final_results_to_csv(test_collector, labs_path)
 
 
 def parse_arguments():
@@ -347,19 +397,45 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--skip-report",
+        "--report-type",
         required=False,
-        action="store_true",
-        default=False,
-        help="Skip the generation of the report",
+        choices=["xlsx", "csv", "none"],
+        default="csv",
+        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report"
     )
 
     return parser.parse_args()
 
+def load_config_and_lab(config_path: str):
+    """
+    Loads a correction file as JSON or YAML. 
+    If 'lab_inline' is set, writes it to a temp file and uses that as 'structure'.
+    Returns (conf, structure_file).
+    """
+    with open(config_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    try:
+        conf = json.loads(content)
+    except ValueError:
+        try:
+            conf = yaml.safe_load(content)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Config file '{config_path}' is neither valid JSON nor YAML:\n{e}")
+
+    inline = conf.get("lab_inline", "")
+    if inline:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False) as tmp:
+            tmp.write(inline)
+            conf["structure"] = tmp.name
+
+    sfile = conf.get("structure")
+    if not sfile or not os.path.exists(sfile):
+        raise ValueError("No valid structure file found.")
+    return conf, sfile
 
 def main():
     args = parse_arguments()
-
+    
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
@@ -369,28 +445,27 @@ def main():
     logger.propagate = False
 
     logger.info("Parsing test configuration...")
-    with open(args.config, "r") as json_conf:
-        conf = json.load(json_conf)
+    conf, structure = load_config_and_lab(args.config)
 
     Setting.get_instance().load_from_dict({"image": conf["default_image"]})
 
-    logger.info(f"Parsing network scenarios template in: {conf['structure']}")
-    if not os.path.exists(conf["structure"]):
-        logger.error(f"The structure file {conf['structure']} does not exist")
-        exit(1)
+    if "lab_inline" in conf:
+        logger.info(f"Parsing inline network scenarios template")
+    else:
+        logger.info(f"Parsing network scenarios template in: {structure}")
 
     template_lab = LabParser().parse(
-        os.path.dirname(conf["structure"]),
-        conf_name=os.path.basename(conf["structure"]),
+        os.path.dirname(structure),
+        conf_name=os.path.basename(structure),
     )
 
     if args.lab:
         run_on_single_network_scenario(
-            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
     elif args.labs:
         run_on_multiple_network_scenarios(
-            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.skip_report
+            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
         )
 
 

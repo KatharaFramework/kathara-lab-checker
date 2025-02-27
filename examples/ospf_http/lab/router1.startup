@@ -1,0 +1,3 @@
+#!/bin/bash
+ip address add 10.0.12.1/24 dev eth0
+systemctl start frr

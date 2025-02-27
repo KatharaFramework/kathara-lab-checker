@@ -25,7 +25,7 @@ python3 -m kathara_lab_checker --config <path-to-the-configuration-file> --labs 
 ```
 
 At this point, the tool parses the provided configuration file and executes the tests. For each network scenario the
-tool creates a `test_results.xlsx` file in the network scenario directory.
+tool creates a report file in the network scenario directory.
 
 The file is composed of three sheets:
 
@@ -33,7 +33,9 @@ The file is composed of three sheets:
 2. `All`: Contains the results for each test.
 3. `Failed`: Contains only the results of failed tests.
 
-After all the network scenarios are tested, the tool outputs an excell file `results.xlsx` in the network scenarios
+By default, reports are generated as a set of CSV files; however, you can choose to generate a consolidated Excel spreadsheet or disable report generation entirely using the `--report-type` flag.
+
+After all the network scenarios are tested, a combined report (either `results.xlsx` or `results.csv`, as selected) is placed in the network scenarios
 directory containing all the results for each network scenario, including the reasons for failed tests.
 
 ## Running the example
@@ -53,6 +55,15 @@ python3 -m kathara_lab_checker --config examples/palabra/correction.json --no-ca
 The `--no-cache` flag force to repeat already executed tests.
 
 ## How to configure?
+
+The `structure` file can be written in either **JSON** or **YAML** format. With **YAML**, you may inline your Kathará lab structure under `lab_inline`. If you specify it like in the following, the tool uses it as your `structure` file automatically.
+
+```yaml
+lab_inline: |
+  router1[0]="net12"
+  router2[0]="net12"
+  ...
+```
 
 In the following you will find the possible values for the configuration file.
 
