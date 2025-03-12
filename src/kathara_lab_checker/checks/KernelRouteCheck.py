@@ -141,7 +141,10 @@ class KernelRouteCheck(AbstractCheck):
             if "scope" in route and route["scope"] == "link":
                 nexthops = [("d.c.", route["dev"])]
             elif "nexthops" in route:
-                nexthops = list(map(lambda x: (x["via"]["host"], x["dev"]), route["nexthops"]))
+                try:
+                    nexthops = list(map(lambda x: (x["via"]["host"], x["dev"]), route["nexthops"]))
+                except KeyError:
+                    nexthops = list(map(lambda x: (x["gateway"], x["dev"]), route["nexthops"]))
             elif "gateway" in route:
                 nexthops = [(route["gateway"], route["dev"])]
             elif "via" in route:
