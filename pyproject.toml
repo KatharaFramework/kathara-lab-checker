@@ -1,6 +1,6 @@
 [project]
 name = "kathara_lab_checker"
-version = "0.1.8"
+version = "0.1.9"
 description = "Tool to automatically check Kathará network scenarios based on a configuration file."
 readme = "README.md"
 requires-python = ">=3.11"
