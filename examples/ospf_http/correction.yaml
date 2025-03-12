@@ -65,7 +65,7 @@ test:
       router1:
       - url: http://10.0.23.3/
         status_code: 200
-        body_contains: Hello
+        body_contains: It works!
       router2:
       - url: http://10.0.23.3/nonexistent
         method: POST
