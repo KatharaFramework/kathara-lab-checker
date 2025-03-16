@@ -1,7 +1,7 @@
-from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
+from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Machine import Machine
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
 
 
@@ -37,3 +37,7 @@ class CollisionDomainCheck(AbstractCheck):
             check_result = self.check(machine_t)
             results.extend(check_result)
         return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        self.logger.info("Checking collision domains...")
+        return self.run(configuration['template_lab'].machines.values())

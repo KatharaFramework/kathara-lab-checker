@@ -1,8 +1,8 @@
 import re
 
-from ..AbstractCheck import AbstractCheck
+from ...foundation.checks.AbstractCheck import AbstractCheck
 from ...model.CheckResult import CheckResult
-from ...utils import get_output
+from ...utils import get_output, key_exists
 
 
 class ProtocolRedistributionCheck(AbstractCheck):
@@ -38,10 +38,19 @@ class ProtocolRedistributionCheck(AbstractCheck):
             reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on `{device_name}`."
         return CheckResult(self.description, False, reason)
 
-    def run(self, protocol, devices_to_redistributed: dict[str, list[str]]) -> list[CheckResult]:
+    def run(self, daemon, devices_to_redistributed: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, injected_protocols in devices_to_redistributed.items():
             for injected_protocol in injected_protocols:
-                check_result = self.check(device_name, protocol, injected_protocol)
+                check_result = self.check(device_name, daemon, injected_protocol)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols"], configuration):
+            for daemon_name in configuration["test"]["protocols"]:
+                if key_exists(["test", "protocols", daemon_name, "injections"], configuration):
+                    self.logger.info(f"Checking {daemon_name} protocols' redistribution...")
+                    results.extend(self.run(daemon_name, configuration["test"]["protocols"][daemon_name]["injections"]))
         return results

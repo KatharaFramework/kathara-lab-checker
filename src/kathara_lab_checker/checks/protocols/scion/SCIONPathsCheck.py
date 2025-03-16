@@ -1,7 +1,11 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
+
 
 class SCIONPathsCheck(AbstractCheck):
     def format_path(self, path: dict) -> str:
@@ -110,3 +114,10 @@ class SCIONPathsCheck(AbstractCheck):
             for dest, exp_paths in destinations.items():
                 all_results.extend(self.check(device_name, dest, exp_paths))
         return all_results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "sciond", "paths"], configuration):
+            self.logger.info("Checking SCION paths...")
+            results.extend(self.run(configuration["test"]["protocols"]['sciond']['paths']))
+        return results

@@ -2,8 +2,9 @@ import json
 
 from Kathara.exceptions import MachineNotRunningError
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
 
 
 class BGPNeighborCheck(AbstractCheck):
@@ -138,4 +139,11 @@ class BGPNeighborCheck(AbstractCheck):
             self.logger.info(f"Checking {device_name} BGP peerings...")
             check_result = self.check(device_name, neighbors)
             results.extend(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "bgpd", "neighbors"], configuration):
+            self.logger.info(f"Checking BGP neighbors...")
+            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['neighbors']))
         return results

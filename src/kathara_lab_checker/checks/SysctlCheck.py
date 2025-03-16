@@ -1,7 +1,8 @@
 from Kathara.exceptions import MachineNotFoundError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 class SysctlCheck(AbstractCheck):
@@ -36,4 +37,11 @@ class SysctlCheck(AbstractCheck):
             for sysctl in sysctls:
                 check_result = self.check(device_name, sysctl)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "sysctls"], configuration):
+            self.logger.info(f"Checking sysctl configurations on devices...")
+            results.extend(self.run(configuration["test"]["sysctls"]))
         return results

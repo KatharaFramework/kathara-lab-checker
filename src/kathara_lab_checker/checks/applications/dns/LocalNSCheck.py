@@ -1,8 +1,8 @@
 import re
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, key_exists
 
 
 class LocalNSCheck(AbstractCheck):
@@ -42,4 +42,11 @@ class LocalNSCheck(AbstractCheck):
             for device_name in managed_devices:
                 check_result = self.check(local_ns, device_name)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "applications", "dns", "local_ns"], configuration):
+            self.logger.info("Checking local name servers configurations...")
+            results.extend(self.run(configuration["test"]["applications"]["dns"]["local_ns"]))
         return results

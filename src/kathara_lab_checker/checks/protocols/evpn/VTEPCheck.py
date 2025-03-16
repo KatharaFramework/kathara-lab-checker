@@ -2,9 +2,9 @@ import json
 
 from Kathara.exceptions import MachineNotRunningError
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, key_exists
 
 
 class VTEPCheck(AbstractCheck):
@@ -44,4 +44,11 @@ class VTEPCheck(AbstractCheck):
                 self.description = f"Checking that `{device_name}` VTEP has vni `{vni}` with VTEP IP `{vtep_ip}`"
                 check_result = self.check(device_name, vni, vtep_ip)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "bgpd", "vtep_devices"], configuration):
+            self.logger.info("Checking VTEP devices configuration...")
+            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['vtep_devices']))
         return results

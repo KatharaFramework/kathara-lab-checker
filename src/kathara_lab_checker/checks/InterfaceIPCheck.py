@@ -3,8 +3,9 @@ import json
 
 from Kathara.exceptions import MachineNotRunningError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 class InterfaceIPCheck(AbstractCheck):
@@ -59,3 +60,10 @@ class InterfaceIPCheck(AbstractCheck):
         )
 
         return json.loads(stdout)
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "ip_mapping"], configuration):
+            self.logger.info("Verifying the IP addresses assigned to devices...")
+            results.extend(self.run(configuration["test"]["ip_mapping"]))
+        return results

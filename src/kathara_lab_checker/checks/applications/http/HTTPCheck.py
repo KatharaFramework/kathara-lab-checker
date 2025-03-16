@@ -1,8 +1,8 @@
 import re
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, key_exists
 
 class HTTPCheck(AbstractCheck):
     """
@@ -98,3 +98,10 @@ class HTTPCheck(AbstractCheck):
                 results = self.check(device_name, check_params)
                 all_results.extend(results)
         return all_results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "applications", "http"], configuration):
+            self.logger.info("Checking HTTP endpoints via cURL...")
+            results.extend(self.run(configuration["test"]["applications"]["http"]))
+        return results

@@ -1,14 +1,14 @@
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, reverse_dictionary, key_exists
 
 
 class DNSRecordCheck(AbstractCheck):
 
     def run(
-        self,
-        records: dict[str, dict[str, list[str]]],
-        machines_with_dns: list[str],
+            self,
+            records: dict[str, dict[str, list[str]]],
+            machines_with_dns: list[str],
     ) -> list[CheckResult]:
         results = []
 
@@ -29,6 +29,16 @@ class DNSRecordCheck(AbstractCheck):
                             False,
                             f"{client} resolve {recordtype} {record} with IP {ip} instead of {addresses}",
                         )
-                        check_result
                     results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "applications", "dns", "records"], configuration) and \
+                key_exists(["test", "applications", "dns", "local_ns"], configuration):
+            self.logger.info("Checking DNS records...")
+            results.extend(self.run(
+                configuration["test"]["applications"]["dns"]["records"],
+                reverse_dictionary(configuration["test"]["applications"]["dns"]["local_ns"]).keys(),
+            ))
         return results

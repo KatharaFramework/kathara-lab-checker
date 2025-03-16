@@ -1,7 +1,8 @@
 from Kathara.exceptions import MachineNotFoundError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 class IPv6EnabledCheck(AbstractCheck):
@@ -22,4 +23,11 @@ class IPv6EnabledCheck(AbstractCheck):
         for device_name in ipv6_devices:
             check_result = self.check(device_name)
             results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "ipv6_enabled"], configuration):
+            self.logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
+            results.extend(self.run(configuration["test"]["ipv6_enabled"]))
         return results

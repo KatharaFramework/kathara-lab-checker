@@ -1,7 +1,11 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
+
 
 class OSPFRoutesCheck(AbstractCheck):
     def check(self, device_name: str, expected_routes: list[dict]) -> list[CheckResult]:
@@ -24,10 +28,10 @@ class OSPFRoutesCheck(AbstractCheck):
             data = json.loads(output)
         except Exception as e:
             return [CheckResult(self.description, False, f"JSON parse error: {str(e)}")]
-        
+
         # If the JSON does not have a "routes" key, assume the top-level object is the routes dict.
         ospf_routes = data.get("routes", data)
-        
+
         for expected in expected_routes:
             route = expected.get("route")
             check_desc = f"OSPF route {route} on {device_name}"
@@ -42,4 +46,11 @@ class OSPFRoutesCheck(AbstractCheck):
         for device_name, routes in devices_to_routes.items():
             self.logger.info(f"Checking OSPF routes for {device_name}...")
             results.extend(self.check(device_name, routes))
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "ospfd", "routes"], configuration):
+            self.logger.info("Checking OSPF routes...")
+            results.extend(self.run(configuration["test"]["protocols"]['ospfd']['routes']))
         return results

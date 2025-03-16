@@ -1,6 +1,6 @@
 from Kathara.exceptions import MachineNotFoundError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
 
 
@@ -21,3 +21,7 @@ class DeviceExistenceCheck(AbstractCheck):
             check_result = self.check(device_name)
             results.append(check_result)
         return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        self.logger.info("Checking devices existence...")
+        return self.run(configuration['template_lab'].machines.keys())

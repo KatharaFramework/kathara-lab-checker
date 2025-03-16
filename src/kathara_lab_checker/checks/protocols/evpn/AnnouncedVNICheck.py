@@ -1,8 +1,8 @@
 import re
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, key_exists
 
 
 class AnnouncedVNICheck(AbstractCheck):
@@ -47,4 +47,13 @@ class AnnouncedVNICheck(AbstractCheck):
             check_result = self.check(device_name, invert=True)
             results.append(check_result)
 
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "bgpd", "evpn_sessions"], configuration) and \
+                key_exists(["test", "protocols", "bgpd", "vtep_devices"], configuration):
+            self.logger.info("Checking BGP VNIs configurations...")
+            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['vtep_devices'],
+                                    configuration["test"]["protocols"]['bgpd']['evpn_sessions']))
         return results

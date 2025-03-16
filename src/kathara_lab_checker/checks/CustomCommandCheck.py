@@ -2,8 +2,9 @@ import re
 
 from Kathara.exceptions import MachineNotFoundError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 class CustomCommandCheck(AbstractCheck):
@@ -67,4 +68,11 @@ class CustomCommandCheck(AbstractCheck):
             for command_entry in command_entries:
                 check_result = self.check(device_name, command_entry)
                 results.extend(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "custom_commands"], configuration):
+            self.logger.info("Checking custom commands output...")
+            results.extend(self.run(configuration["test"]["custom_commands"]))
         return results

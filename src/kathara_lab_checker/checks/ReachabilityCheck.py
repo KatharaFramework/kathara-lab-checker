@@ -1,8 +1,8 @@
 import jc
 
-from ..utils import get_output
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import get_output, key_exists
 
 
 class ReachabilityCheck(AbstractCheck):
@@ -45,4 +45,11 @@ class ReachabilityCheck(AbstractCheck):
             for destination in destinations:
                 check_result = self.check(device_name, destination)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "reachability"], configuration):
+            self.logger.info(f"Starting reachability test...")
+            results.extend(self.run(configuration["test"]["reachability"]))
         return results

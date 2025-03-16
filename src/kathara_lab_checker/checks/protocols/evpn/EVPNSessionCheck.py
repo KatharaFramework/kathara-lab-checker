@@ -2,9 +2,9 @@ import json
 
 from Kathara.exceptions import MachineNotRunningError
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output
+from ....utils import get_output, key_exists
 
 
 class EVPNSessionCheck(AbstractCheck):
@@ -54,3 +54,11 @@ class EVPNSessionCheck(AbstractCheck):
                 check_result = self.check(device_name, neighbor)
                 results.append(check_result)
         return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "bgpd", "evpn_sessions"], configuration):
+            self.logger.info("Checking EVPN sessions configuration...")
+            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['evpn_sessions']))
+        return results
+

@@ -3,9 +3,9 @@ import re
 import jc
 from Kathara.exceptions import MachineNotRunningError
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
-from ....utils import get_output, find_lines_with_string, find_device_name_from_ip
+from ....utils import get_output, find_lines_with_string, find_device_name_from_ip, key_exists
 
 
 class DNSAuthorityCheck(AbstractCheck):
@@ -111,4 +111,17 @@ class DNSAuthorityCheck(AbstractCheck):
                     for local_ns in local_nameservers:
                         check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns)
                         results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "applications", "dns", "authoritative"], configuration) and \
+                key_exists(["test", "applications", "dns", "local_ns"], configuration) and \
+                key_exists(["test", "ip_mapping"], configuration):
+            self.logger.info("Checking DNS authorities...")
+            results.extend(self.run(configuration["test"]["applications"]["dns"]["authoritative"],
+                                    configuration["test"]["applications"]["dns"]["local_ns"].keys(),
+                                    configuration["test"]["ip_mapping"]
+                                    )
+                           )
         return results

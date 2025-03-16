@@ -4,8 +4,9 @@ from typing import Union, Any
 
 from Kathara.exceptions import MachineNotRunningError
 
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
@@ -69,7 +70,7 @@ class KernelRouteCheck(AbstractCheck):
                 for nh in nexthops:
                     valid_ip = is_valid_ip(nh)
                     if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
-                        not valid_ip and not any(item[1] == nh for item in actual_nh)
+                            not valid_ip and not any(item[1] == nh for item in actual_nh)
                     ):
                         check_result = CheckResult(
                             self.description,
@@ -166,3 +167,10 @@ class KernelRouteCheck(AbstractCheck):
                     raise Exception("Strange nexthop: ", current_nexthop)
             routes[dst] = set(nexthops)
         return routes
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "kernel_routes"], configuration):
+            self.logger.info("Checking Routing Tables...")
+            results.extend(self.run(configuration["test"]["kernel_routes"]))
+        return results

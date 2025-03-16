@@ -1,7 +1,9 @@
-import re
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
+
 
 class SCIONAddressCheck(AbstractCheck):
     def check(self, device_name: str, expected_address: str) -> CheckResult:
@@ -35,4 +37,11 @@ class SCIONAddressCheck(AbstractCheck):
         results = []
         for device_name, expected in device_to_expected.items():
             results.append(self.check(device_name, expected))
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "sciond", "address"], configuration):
+            self.logger.info("Checking SCION addresses...")
+            results.extend(self.run(configuration["test"]["protocols"]['sciond']['address']))
         return results

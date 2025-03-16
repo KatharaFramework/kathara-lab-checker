@@ -1,8 +1,9 @@
 import json
 from collections import Counter
 
-from ...AbstractCheck import AbstractCheck
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
 
 
 class BGPRoutesCheck(AbstractCheck):
@@ -83,4 +84,11 @@ class BGPRoutesCheck(AbstractCheck):
             self.logger.info(f"Checking {device_name} BGP routes...")
             check_result = self.check(device_name, networks)
             results.extend(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "bgpd", "routes"], configuration):
+            self.logger.info("Checking BGP routes...")
+            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['routes']))
         return results

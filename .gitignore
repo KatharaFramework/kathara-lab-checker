@@ -107,3 +107,5 @@ Dockerfile~
 .idea/
 
 scripts/pip-package/dist/*
+*.csv
+*.xslx

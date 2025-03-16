@@ -1,8 +1,8 @@
 from Kathara.exceptions import MachineNotFoundError
 
-from ..utils import get_output
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import get_output, key_exists
 
 
 class DaemonCheck(AbstractCheck):
@@ -33,8 +33,15 @@ class DaemonCheck(AbstractCheck):
     def run(self, devices_to_daemons: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, daemons in devices_to_daemons.items():
-            self.logger.info(f"Checking if daemons are running on `{device_name}`...")
+            self.logger.info(f"Checking running daemons on `{device_name}`...")
             for daemon_name in daemons:
                 check_result = self.check(device_name, daemon_name)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "daemons"], configuration):
+            self.logger.info(f"Checking running daemons...")
+            results.extend(self.run(configuration["test"]["daemons"]))
         return results

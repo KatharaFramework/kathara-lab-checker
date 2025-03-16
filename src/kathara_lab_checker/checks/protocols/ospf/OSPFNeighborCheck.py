@@ -1,7 +1,11 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
+
 
 class OSPFNeighborCheck(AbstractCheck):
     def check(self, device_name: str, expected_neighbors: list[dict]) -> list[CheckResult]:
@@ -60,4 +64,11 @@ class OSPFNeighborCheck(AbstractCheck):
         for device_name, neighbors in device_to_neighbors.items():
             self.logger.info(f"Checking OSPF neighbors for {device_name}...")
             results.extend(self.check(device_name, neighbors))
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "ospfd", "neighbors"], configuration):
+            self.logger.info("Checking OSPF neighbors...")
+            results.extend(self.run(configuration["test"]["protocols"]['ospfd']['neighbors']))
         return results

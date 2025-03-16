@@ -1,5 +1,6 @@
-from .AbstractCheck import AbstractCheck
+from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
+from ..utils import key_exists
 
 
 class StartupExistenceCheck(AbstractCheck):
@@ -17,4 +18,11 @@ class StartupExistenceCheck(AbstractCheck):
         for device_name in machines_to_check:
             check_result = self.check(device_name)
             results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "requiring_startup"], configuration):
+            self.logger.info("Checking that all required startup files exist...")
+            results.extend(self.run(configuration["test"]["requiring_startup"]))
         return results

@@ -1,7 +1,11 @@
 import json
+
 from Kathara.exceptions import MachineNotRunningError
-from ...AbstractCheck import AbstractCheck
+
+from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
+from ....utils import key_exists
+
 
 class OSPFInterfaceCheck(AbstractCheck):
     def check(self, device_name: str, interface_name: str, expected: dict) -> list[CheckResult]:
@@ -16,22 +20,22 @@ class OSPFInterfaceCheck(AbstractCheck):
             )
         except MachineNotRunningError as e:
             return [CheckResult(base_desc, False, str(e))]
-        
+
         output = stdout.decode("utf-8") if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
             return [CheckResult(base_desc, False, err_msg)]
-        
+
         try:
             data = json.loads(output)
         except Exception as e:
             return [CheckResult(base_desc, False, f"JSON parse error: {str(e)}")]
-        
+
         interfaces = data.get("interfaces", {})
         if interface_name not in interfaces:
             results.append(CheckResult(base_desc, False, f"Interface {interface_name} not found"))
             return results
-        
+
         iface = interfaces[interface_name]
         for key, expected_value in expected.items():
             actual_value = iface.get(key)
@@ -48,4 +52,11 @@ class OSPFInterfaceCheck(AbstractCheck):
             self.logger.info(f"Checking OSPF interface parameters for {device_name}...")
             for iface_name, expected in iface_dict.items():
                 results.extend(self.check(device_name, iface_name, expected))
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols", "ospfd", "interfaces"], configuration):
+            self.logger.info("Checking OSPF interface parameters...")
+            results.extend(self.run(configuration["test"]["protocols"]['ospfd']['interfaces']))
         return results

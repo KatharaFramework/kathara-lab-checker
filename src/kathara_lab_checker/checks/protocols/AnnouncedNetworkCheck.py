@@ -1,8 +1,8 @@
 import re
 
-from ..AbstractCheck import AbstractCheck
+from ...foundation.checks.AbstractCheck import AbstractCheck
 from ...model.CheckResult import CheckResult
-from ...utils import get_output
+from ...utils import get_output, key_exists
 
 
 class AnnouncedNetworkCheck(AbstractCheck):
@@ -26,8 +26,17 @@ class AnnouncedNetworkCheck(AbstractCheck):
     def run(self, protocol: str, devices_to_networks: dict[str, list[str]]) -> list[CheckResult]:
         results = []
         for device_name, networks in devices_to_networks.items():
-            self.logger.info(f"Checking {device_name} BGP announces...")
+            self.logger.info(f"Checking {device_name} {protocol} announces...")
             for network in networks:
                 check_result = self.check(device_name, protocol, network)
                 results.append(check_result)
+        return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "protocols"], configuration):
+            for daemon_name in configuration["test"]["protocols"]:
+                if key_exists(["test", "protocols", daemon_name, "networks"], configuration):
+                    self.logger.info(f"Checking announced networks for {daemon_name}...")
+                    results.extend(self.run(daemon_name, configuration["test"]["protocols"][daemon_name]["networks"]))
         return results
