@@ -1,15 +1,20 @@
 import re
+
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import get_output, key_exists
+
 
 class HTTPCheck(AbstractCheck):
     """
     Execute HTTP checks using curl on the remote device.
     """
+
     def __init__(self, lab: Lab, description: str = None):
         super().__init__(lab, description=description, priority=3040)
 
@@ -29,7 +34,7 @@ class HTTPCheck(AbstractCheck):
         url = test_params.get("url")
         if not url:
             desc = f"HTTP Check on {device_name} missing 'url'"
-            return [CheckResult(desc, False, "No 'url' provided")]
+            return [FailedCheck(desc, "No 'url' provided")]
 
         desc = f"HTTP check '{url}' on {device_name}"
 
@@ -46,7 +51,7 @@ class HTTPCheck(AbstractCheck):
                 lab_hash=self.lab.hash
             )
         except MachineNotRunningError as e:
-            return [CheckResult(desc, False, str(e))]
+            return [FailedCheck(desc, str(e))]
 
         combined_output = get_output(exec_output).strip()
         if delimiter in combined_output:
@@ -57,32 +62,32 @@ class HTTPCheck(AbstractCheck):
 
         expected_code = test_params.get("status_code", 200)
         if not code_str.isdigit():
-            results.append(CheckResult(desc, False, f"curl output did not contain a valid status code: '{code_str}'"))
+            results.append(FailedCheck(desc, f"curl output did not contain a valid status code: '{code_str}'"))
         else:
             actual_code = int(code_str)
             if actual_code == expected_code:
-                results.append(CheckResult(f"{desc} status", True, f"HTTP {actual_code} == {expected_code}"))
+                results.append(SuccessfulCheck(f"{desc} status", f"HTTP {actual_code} == {expected_code}"))
             else:
-                results.append(CheckResult(f"{desc} status", False,
-                    f"Expected HTTP {expected_code}, got {actual_code}"))
+                results.append(FailedCheck(f"{desc} status",
+                                           f"Expected HTTP {expected_code}, got {actual_code}"))
 
         if "regex_body" in test_params or "body_contains" in test_params:
             if "regex_body" in test_params:
                 regex = test_params["regex_body"]
                 regex_desc = f"{desc} body regex /{regex}/"
                 if re.search(regex, body):
-                    results.append(CheckResult(regex_desc, True, "OK"))
+                    results.append(SuccessfulCheck(regex_desc, "OK"))
                 else:
-                    results.append(CheckResult(regex_desc, False, "Body does not match regex"))
-            
+                    results.append(FailedCheck(regex_desc, "Body does not match regex"))
+
             if "body_contains" in test_params:
                 substr = test_params["body_contains"]
                 substr_desc = f"{desc} body substring '{substr}'"
                 if substr in body:
-                    results.append(CheckResult(substr_desc, True, "OK"))
+                    results.append(SuccessfulCheck(substr_desc, "OK"))
                 else:
-                    results.append(CheckResult(substr_desc, False, "Substring not found in body"))
-        
+                    results.append(FailedCheck(substr_desc, "Substring not found in body"))
+
         return results
 
     def run(self, device_http_tests: dict[str, list[dict]]) -> list[CheckResult]:

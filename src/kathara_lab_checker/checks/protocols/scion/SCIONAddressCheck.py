@@ -2,7 +2,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
 
 
@@ -25,15 +27,15 @@ class SCIONAddressCheck(AbstractCheck):
                 stream=False
             )
         except MachineNotRunningError as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
         output = stdout.decode("utf-8").strip() if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
-            return CheckResult(self.description, False, err_msg)
+            return FailedCheck(self.description, err_msg)
         if output == expected_address:
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
-            return CheckResult(self.description, False, f"Expected '{expected_address}', got '{output}'")
+            return FailedCheck(self.description, f"Expected '{expected_address}', got '{output}'")
 
     def run(self, device_to_expected: dict[str, str]) -> list[CheckResult]:
         """

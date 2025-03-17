@@ -3,7 +3,9 @@ import re
 from Kathara.model.Lab import Lab
 
 from ...foundation.checks.AbstractCheck import AbstractCheck
-from ...model.CheckResult import CheckResult
+from ...foundation.model.CheckResult import CheckResult
+from ...model.FailedCheck import FailedCheck
+from ...model.SuccessfulCheck import SuccessfulCheck
 from ...utils import get_output, key_exists
 
 
@@ -29,7 +31,7 @@ class ProtocolRedistributionCheck(AbstractCheck):
                 lab_hash=self.lab.hash,
             )
         except Exception as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
         output = get_output(exec_output_gen).split("\n")
         found = False
@@ -38,10 +40,10 @@ class ProtocolRedistributionCheck(AbstractCheck):
                 found = True
                 break
         if found ^ invert:
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
             reason = f"{injected_protocol} routes are {'' if invert else 'not '}injected into `{protocol_to_check}` on `{device_name}`."
-        return CheckResult(self.description, False, reason)
+        return FailedCheck(self.description, reason)
 
     def run(self, daemon, devices_to_redistributed: dict[str, list[str]]) -> list[CheckResult]:
         results = []

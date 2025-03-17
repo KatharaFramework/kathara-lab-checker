@@ -4,7 +4,9 @@ from collections import Counter
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
 
 
@@ -23,16 +25,15 @@ class BGPRoutesCheck(AbstractCheck):
                 machine_name=device_name, command=f"vtysh -e 'show ip bgp json'", lab_hash=self.lab.hash, stream=False
             )
         except Exception as e:
-            results.append(CheckResult(self.description, False, str(e)))
+            results.append(FailedCheck(self.description, str(e)))
             return results
 
         output = stdout.decode("utf-8") if stdout else None
 
         if stderr or exit_code != 0:
             results.append(
-                CheckResult(
+                FailedCheck(
                     self.description,
-                    False,
                     stderr.decode("utf-8").strip() if stderr else f"Exit code: {exit_code}",
                 )
             )
@@ -45,7 +46,8 @@ class BGPRoutesCheck(AbstractCheck):
         for network in networks:
             if network["route"] not in router_routes:
                 results.append(
-                    CheckResult(self.description, False, f"Network {network['route']} is not in BGP routing table.")
+                    FailedCheck(self.description,
+                                f"Network {network['route']} is not in BGP routing table.")
                 )
                 continue
 
@@ -53,9 +55,8 @@ class BGPRoutesCheck(AbstractCheck):
 
             if len(router_route) != len(network["aspath"]):
                 results.append(
-                    CheckResult(
+                    FailedCheck(
                         self.description,
-                        False,
                         f"BGP network {network['route']} has a different number of alternatives. Expected: {len(network['aspath'])} Actual: {len(router_route)}",
                     )
                 )
@@ -71,12 +72,11 @@ class BGPRoutesCheck(AbstractCheck):
             dict_count = {key: value for key, value in dict_count if value != 0}
 
             if not dict_count:
-                results.append(CheckResult(self.description, True, "OK"))
+                results.append(SuccessfulCheck(self.description))
             else:
                 results.append(
-                    CheckResult(
+                    FailedCheck(
                         self.description,
-                        False,
                         f"BGP network {network['route']} have not correct AS Paths (supposed-actual): {dict_count}",
                     )
                 )

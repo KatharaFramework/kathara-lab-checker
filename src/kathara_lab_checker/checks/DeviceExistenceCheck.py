@@ -2,7 +2,9 @@ from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 
 
 class DeviceExistenceCheck(AbstractCheck):
@@ -16,9 +18,9 @@ class DeviceExistenceCheck(AbstractCheck):
         try:
             self.lab.get_machine(device_name)
         except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
-        return CheckResult(self.description, True, "OK")
+        return SuccessfulCheck(self.description)
 
     def run(self, template_machines: list[str]) -> list[CheckResult]:
         results = []

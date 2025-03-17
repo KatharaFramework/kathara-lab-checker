@@ -1,7 +1,9 @@
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import get_output, reverse_dictionary, key_exists
 
 
@@ -27,11 +29,10 @@ class DNSRecordCheck(AbstractCheck):
                     )
                     ip = get_output(exec_output_gen).strip()
                     if ip in addresses:
-                        check_result = CheckResult("Checking correctness of DNS records", True, "OK")
+                        check_result = SuccessfulCheck("Checking correctness of DNS records", "OK")
                     else:
-                        check_result = CheckResult(
+                        check_result = FailedCheck(
                             "Checking correctness of DNS records",
-                            False,
                             f"{client} resolve {recordtype} {record} with IP {ip} instead of {addresses}",
                         )
                     results.append(check_result)

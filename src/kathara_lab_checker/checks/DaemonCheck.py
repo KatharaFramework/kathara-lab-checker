@@ -2,7 +2,9 @@ from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import get_output, key_exists
 
 
@@ -27,12 +29,12 @@ class DaemonCheck(AbstractCheck):
                 self.kathara_manager.exec(machine_name=device.name, lab_hash=self.lab.hash, command=f"pgrep {daemon}")
             )
             if (output != "") ^ invert:
-                return CheckResult(self.description, True, "OK")
+                return SuccessfulCheck(self.description)
             else:
                 reason = f"Daemon {daemon} is {'' if invert else 'not '}running on device `{device_name}`"
-                return CheckResult(self.description, False, reason)
+                return FailedCheck(self.description, reason)
         except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
     def run(self, devices_to_daemons: dict[str, list[str]]) -> list[CheckResult]:
         results = []

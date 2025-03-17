@@ -4,7 +4,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
 
 
@@ -72,17 +74,17 @@ class SCIONPathsCheck(AbstractCheck):
                 stream=False
             )
         except MachineNotRunningError as e:
-            return [CheckResult(desc_base, False, str(e))]
+            return [FailedCheck(desc_base, str(e))]
 
         raw_output = stdout.decode("utf-8").strip() if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
-            return [CheckResult(desc_base, False, err_msg)]
+            return [FailedCheck(desc_base, err_msg)]
 
         try:
             data = json.loads(raw_output)
         except Exception as e:
-            return [CheckResult(desc_base, False, f"JSON parse error: {str(e)}")]
+            return [FailedCheck(desc_base, f"JSON parse error: {str(e)}")]
 
         actual_paths = set()
         for path_obj in data.get("paths", []):
@@ -94,9 +96,9 @@ class SCIONPathsCheck(AbstractCheck):
         for exp_path in expected_paths:
             desc = f"{desc_base}: '{exp_path}'"
             if exp_path in actual_paths:
-                results.append(CheckResult(desc, True, "OK"))
+                results.append(SuccessfulCheck(desc))
             else:
-                results.append(CheckResult(desc, False, f"Path '{exp_path}' not found"))
+                results.append(FailedCheck(desc, f"Path '{exp_path}' not found"))
         return results
 
     def run(self, device_destinations: dict[str, dict[str, list[str]]]) -> list[CheckResult]:

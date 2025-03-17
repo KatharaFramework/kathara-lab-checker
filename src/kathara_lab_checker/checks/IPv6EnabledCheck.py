@@ -2,7 +2,9 @@ from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import key_exists
 
 
@@ -17,11 +19,11 @@ class IPv6EnabledCheck(AbstractCheck):
         try:
             device = self.lab.get_machine(device_name)
             if "ipv6" in device.meta and device.is_ipv6_enabled():
-                return CheckResult(self.description, True, "OK")
+                return SuccessfulCheck(self.description)
             else:
-                return CheckResult(self.description, False, f"IPv6 not enabled on `{device_name}`")
+                return FailedCheck(self.description, f"IPv6 not enabled on `{device_name}`")
         except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
     def run(self, ipv6_devices: list[str]) -> list[CheckResult]:
         results = []

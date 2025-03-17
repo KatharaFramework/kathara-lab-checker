@@ -2,7 +2,9 @@ from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import key_exists
 
 
@@ -23,18 +25,17 @@ class SysctlCheck(AbstractCheck):
 
             if sysctl_to_check in device_sysctls:
                 if value_to_check == device_sysctls[sysctl_to_check]:
-                    return CheckResult(self.description, True, "OK")
+                    return SuccessfulCheck(self.description)
                 else:
-                    return CheckResult(
+                    return FailedCheck(
                         self.description,
-                        False,
                         f"Sysctl `{sysctl_to_check}` set on `{device_name}` with wrong "
                         f"value `{device_sysctls[sysctl_to_check]}` (instead of `{value_to_check}`)",
                     )
             else:
-                return CheckResult(self.description, False, f"Sysctl `{sysctl_to_check}` not set on `{device_name}`")
+                return FailedCheck(self.description, f"Sysctl `{sysctl_to_check}` not set on `{device_name}`")
         except MachineNotFoundError as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
     def run(self, devices_sysctls: dict[str, list[str]]) -> list[CheckResult]:
         results = []

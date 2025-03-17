@@ -1,4 +1,4 @@
-from .model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
 
 
 class TestCollector:

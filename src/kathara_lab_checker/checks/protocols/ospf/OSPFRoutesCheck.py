@@ -4,7 +4,9 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
 
 
@@ -24,15 +26,15 @@ class OSPFRoutesCheck(AbstractCheck):
                 stream=False
             )
         except MachineNotRunningError as e:
-            return [CheckResult(self.description, False, str(e))]
+            return [FailedCheck(self.description, str(e))]
         output = stdout.decode("utf-8") if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
-            return [CheckResult(self.description, False, err_msg)]
+            return [FailedCheck(self.description, err_msg)]
         try:
             data = json.loads(output)
         except Exception as e:
-            return [CheckResult(self.description, False, f"JSON parse error: {str(e)}")]
+            return [FailedCheck(self.description, f"JSON parse error: {str(e)}")]
 
         # If the JSON does not have a "routes" key, assume the top-level object is the routes dict.
         ospf_routes = data.get("routes", data)
@@ -41,9 +43,9 @@ class OSPFRoutesCheck(AbstractCheck):
             route = expected.get("route")
             check_desc = f"OSPF route {route} on {device_name}"
             if route not in ospf_routes:
-                results.append(CheckResult(check_desc, False, f"Route {route} not found"))
+                results.append(FailedCheck(check_desc, f"Route {route} not found"))
             else:
-                results.append(CheckResult(check_desc, True, "OK"))
+                results.append(SuccessfulCheck(check_desc))
         return results
 
     def run(self, devices_to_routes: dict[str, list[dict]]) -> list[CheckResult]:

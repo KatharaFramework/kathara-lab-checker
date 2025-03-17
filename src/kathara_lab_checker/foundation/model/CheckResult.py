@@ -1,9 +1,10 @@
 import logging
+from abc import ABC
 
-from ..utils import green, red
+from ...utils import green, red
 
 
-class CheckResult:
+class CheckResult(ABC):
 
     def __init__(self, description: str, passed: bool, reason: str) -> None:
         self.description: str = description

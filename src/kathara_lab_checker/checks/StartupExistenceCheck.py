@@ -1,7 +1,9 @@
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import key_exists
 
 
@@ -14,9 +16,9 @@ class StartupExistenceCheck(AbstractCheck):
         self.description = f"Check existence of `{device_name}.startup` file"
 
         if self.lab.fs.exists(device_name + ".startup"):
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
-            return CheckResult(self.description, False, f"{device_name}.startup file not found")
+            return FailedCheck(self.description, f"{device_name}.startup file not found")
 
     def run(self, machines_to_check: list[str]) -> list[CheckResult]:
         results = []

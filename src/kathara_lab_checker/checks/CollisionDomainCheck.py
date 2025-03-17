@@ -3,7 +3,9 @@ from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 
 
 class CollisionDomainCheck(AbstractCheck):
@@ -25,14 +27,14 @@ class CollisionDomainCheck(AbstractCheck):
                         f"Interface `{iface_num}` of device {machine_t.name} is connected to collision domain "
                         f"`{interface.link.name}` instead of `{interface_t.link.name}`"
                     )
-                    results.append(CheckResult(self.description, False, reason))
+                    results.append(FailedCheck(self.description, reason))
                 else:
-                    results.append(CheckResult(self.description, True, "OK"))
+                    results.append(SuccessfulCheck(self.description))
         except KeyError:
-            results.append(CheckResult(self.description, False, f"No interfaces found with name `eth{iface_num}`"))
+            results.append(FailedCheck(self.description, f"No interfaces found with name `eth{iface_num}`"))
         except MachineNotFoundError as e:
             self.description = f"Checking the collision domain attached to `{machine_t.name}`"
-            results.append(CheckResult(self.description, False, str(e)))
+            results.append(FailedCheck(self.description, str(e)))
         return results
 
     def run(self, template_machines: list[Machine]) -> list[CheckResult]:

@@ -3,7 +3,9 @@ import re
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....model.CheckResult import CheckResult
+from ....foundation.model.CheckResult import CheckResult
+from ....model.FailedCheck import FailedCheck
+from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import get_output, key_exists
 
 
@@ -23,23 +25,23 @@ class AnnouncedVNICheck(AbstractCheck):
                 machine_name=device_name, command=f"vtysh -e 'show running-config bgpd'", lab_hash=self.lab.hash
             )
         except Exception as e:
-            return CheckResult(self.description, False, str(e))
+            return FailedCheck(self.description, str(e))
 
         output = get_output(exec_output_gen).splitlines()
         for line in output:
             if re.search(rf"\s*advertise-all-vni\s*", line):
                 if invert:
-                    return CheckResult(
-                        self.description, False, f"`advertise-all-vni` found in `{device_name}` bgpd configuration"
+                    return FailedCheck(
+                        self.description, f"`advertise-all-vni` found in `{device_name}` bgpd configuration"
                     )
                 else:
-                    return CheckResult(self.description, True, "OK")
+                    return SuccessfulCheck(self.description)
 
         if invert:
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
-            return CheckResult(
-                self.description, False, f"`advertise-all-vni` not found in `{device_name}` bgpd configuration"
+            return FailedCheck(
+                self.description, f"`advertise-all-vni` not found in `{device_name}` bgpd configuration"
             )
 
     def run(self, device_to_vnis_info: dict[str, dict], evpn_devices: list[str]) -> list[CheckResult]:
