@@ -7,7 +7,7 @@ included for clarity, aligning each check with its priority and description.
 
 ## Summary of Ranges
 
-The checks are categorized into specific ranges, according the following table.
+The checks are categorized into specific ranges, according to the following table.
 
 | **Range Start - End** | **Category**                       | **Description**                               |
 |-----------------------|------------------------------------|-----------------------------------------------|
