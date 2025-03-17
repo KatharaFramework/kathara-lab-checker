@@ -1,14 +1,21 @@
 # Checks Priorities
 
+This document provides a detailed overview of the checks utilized during system evaluations and their assigned
+priorities. The priorities define the order in which checks are performed, ensuring that foundational and critical
+system-level inspections occur before protocol-level, application-level, or custom checks. A tabular breakdown is
+included for clarity, aligning each check with its priority and description.
+
 ## Summary of Ranges
 
-| **Range Start - End** | **Category**                       | **Description**                                  |
-|-----------------------|------------------------------------|--------------------------------------------------|
-| 0 - 999               | Foundation and system-level checks | Core system, device, and network foundations.    |
-| 1000 - 1999           | Protocol checks                    | Protocol-related checks like BGP, OSPF, etc.     |
-| 2000 - 2999           | Routing Table Checks               | Dataplane-related checks.                        |
-| 3000 - 3999           | Application checks                 | Application-level checks like DNS and HTTP.      |
-| 4000 - 4999           | Miscellaneous or custom checks     | Other/custom checks not part of core categories. |
+The checks are categorized into specific ranges, according the following table.
+
+| **Range Start - End** | **Category**                       | **Description**                               |
+|-----------------------|------------------------------------|-----------------------------------------------|
+| 0 - 999               | Foundation and system-level checks | Core system, device, and network foundations. |
+| 1000 - 1999           | Protocol checks                    | Protocol-related checks like BGP, OSPF, etc.  |
+| 2000 - 2999           | Routing Table Checks               | Dataplane-related checks.                     |
+| 3000 - 3999           | Application checks                 | Application-level checks like DNS and HTTP.   |
+| 4000 - 4999           | Miscellaneous or custom checks     | Other/custom checks.                          |
 
 ## Current Priorities Table
 
