@@ -6,13 +6,15 @@ from Kathara.model.Lab import Lab
 
 class AbstractCheck(ABC):
 
-    __slots__ = ["description", "logger", "kathara_manager", "lab"]
+    __slots__ = [ "lab", "description", "priority", "kathara_manager", "logger"]
 
-    def __init__(self, lab: Lab, description: str = None):
-        self.description: str = description
-        self.logger = logging.getLogger("kathara-lab-checker")
-        self.kathara_manager: Kathara = Kathara.get_instance()
+    def __init__(self, lab: Lab, description: str = None, priority: int = 0):
         self.lab: Lab = lab
+        self.description: str = description
+        self.priority: int = priority
+        self.kathara_manager: Kathara = Kathara.get_instance()
+        self.logger = logging.getLogger("kathara-lab-checker")
+
 
     @abstractmethod
     def run_from_configuration(self, configuration: dict):

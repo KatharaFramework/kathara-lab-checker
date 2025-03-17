@@ -1,10 +1,15 @@
 from Kathara.exceptions import MachineNotFoundError
+from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
 
 
 class DeviceExistenceCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=0)
+
 
     def check(self, device_name: str) -> CheckResult:
         self.description = f"Check existence of `{device_name}`"

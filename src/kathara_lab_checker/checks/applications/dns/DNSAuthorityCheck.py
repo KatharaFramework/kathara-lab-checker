@@ -2,6 +2,7 @@ import re
 
 import jc
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -9,6 +10,10 @@ from ....utils import get_output, find_lines_with_string, find_device_name_from_
 
 
 class DNSAuthorityCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=3010)
+
     def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str) -> CheckResult:
         self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
 

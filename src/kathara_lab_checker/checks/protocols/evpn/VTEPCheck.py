@@ -1,6 +1,7 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -8,6 +9,10 @@ from ....utils import get_output, key_exists
 
 
 class VTEPCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1040)
+
     def check(self, device_name: str, vni: str, vtep_ip: str) -> CheckResult:
         try:
             exec_output_gen = self.kathara_manager.exec(

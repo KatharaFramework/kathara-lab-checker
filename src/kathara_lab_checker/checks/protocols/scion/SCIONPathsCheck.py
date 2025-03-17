@@ -1,6 +1,7 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -8,6 +9,10 @@ from ....utils import key_exists
 
 
 class SCIONPathsCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1100)
+
     def format_path(self, path: dict) -> str:
         """
         Formats a single path dictionary into a string representation 

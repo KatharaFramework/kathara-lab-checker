@@ -1,4 +1,5 @@
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -6,6 +7,10 @@ from ....utils import key_exists
 
 
 class SCIONAddressCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1090)
+
     def check(self, device_name: str, expected_address: str) -> CheckResult:
         """
         Executes 'scion address' on the device and compares the output to expected_address.

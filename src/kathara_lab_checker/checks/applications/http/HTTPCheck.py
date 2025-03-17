@@ -1,5 +1,7 @@
 import re
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
+
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
 from ....utils import get_output, key_exists
@@ -8,6 +10,8 @@ class HTTPCheck(AbstractCheck):
     """
     Execute HTTP checks using curl on the remote device.
     """
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=3040)
 
     def check(self, device_name: str, test_params: dict) -> list[CheckResult]:
         """

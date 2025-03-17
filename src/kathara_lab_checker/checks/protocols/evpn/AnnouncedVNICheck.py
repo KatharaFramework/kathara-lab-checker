@@ -1,11 +1,17 @@
 import re
 
+from Kathara.model.Lab import Lab
+
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
 from ....utils import get_output, key_exists
 
 
 class AnnouncedVNICheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1050)
+
     def check(self, device_name: str, invert: bool = False) -> CheckResult:
         if not invert:
             self.description = f"Check that {device_name} announces all VNIs"

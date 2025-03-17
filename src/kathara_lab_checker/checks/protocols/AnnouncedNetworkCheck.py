@@ -1,11 +1,17 @@
 import re
 
+from Kathara.model.Lab import Lab
+
 from ...foundation.checks.AbstractCheck import AbstractCheck
 from ...model.CheckResult import CheckResult
 from ...utils import get_output, key_exists
 
 
 class AnnouncedNetworkCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1110)
+
     def check(self, device_name: str, protocol: str, network: str) -> CheckResult:
         self.description = f"Check {protocol} network ({network}) for {device_name}"
 

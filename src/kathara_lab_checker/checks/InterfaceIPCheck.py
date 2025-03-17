@@ -2,6 +2,7 @@ import ipaddress
 import json
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
@@ -9,6 +10,9 @@ from ..utils import key_exists
 
 
 class InterfaceIPCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=50)
 
     def check(self, device_name: str, interface_number: int, ip: str, dumped_iface: dict) -> CheckResult:
         interface_name = f"eth{interface_number}" if interface_number.isnumeric() else interface_number

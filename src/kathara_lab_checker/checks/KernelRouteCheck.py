@@ -3,6 +3,7 @@ import json
 from typing import Union, Any
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
@@ -28,6 +29,10 @@ def is_valid_ip(ip_str):
 
 
 class KernelRouteCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=2000)
+
     def check(self, device_name: str, expected_routing_table: list) -> list[CheckResult]:
         self.description = f"Checking the routing table of {device_name}"
         actual_routing_table = dict(

@@ -101,7 +101,7 @@ def run_on_single_network_scenario(
         logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
 
     check_instances = CheckFactory().instantiate_classes_from_package_name("kathara_lab_checker.checks", lab)
-    for check in check_instances:
+    for check in sorted(check_instances, key=lambda x: x.priority):
         check_results = check.run_from_configuration(configuration)
         test_collector.add_check_results(lab_name, check_results)
 

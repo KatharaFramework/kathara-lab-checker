@@ -1,9 +1,14 @@
+from Kathara.model.Lab import Lab
+
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
 from ....utils import get_output, reverse_dictionary, key_exists
 
 
 class DNSRecordCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=3030)
 
     def run(
             self,

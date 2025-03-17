@@ -1,4 +1,5 @@
 from Kathara.exceptions import MachineNotFoundError
+from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
@@ -6,8 +7,11 @@ from ..model.CheckResult import CheckResult
 
 
 class CollisionDomainCheck(AbstractCheck):
-    def check(self, machine_t: Machine) -> list[CheckResult]:
 
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=10)
+
+    def check(self, machine_t: Machine) -> list[CheckResult]:
         results = []
         try:
             machine = self.lab.get_machine(machine_t.name)

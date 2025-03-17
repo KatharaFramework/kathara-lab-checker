@@ -1,6 +1,7 @@
 import json
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
@@ -8,6 +9,10 @@ from ....utils import key_exists
 
 
 class OSPFRoutesCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1070)
+
     def check(self, device_name: str, expected_routes: list[dict]) -> list[CheckResult]:
         results = []
         self.description = f"Checking OSPF routes on {device_name}"

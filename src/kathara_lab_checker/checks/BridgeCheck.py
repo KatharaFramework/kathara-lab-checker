@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
 from ..model.CheckResult import CheckResult
@@ -28,6 +29,10 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 
 class BridgeCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=60)
+
     def check_bridge_interfaces(
             self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
     ) -> (CheckResult, set[str]):

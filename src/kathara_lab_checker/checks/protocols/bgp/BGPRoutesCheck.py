@@ -1,12 +1,17 @@
 import json
 from collections import Counter
 
+from Kathara.model.Lab import Lab
+
 from ....foundation.checks.AbstractCheck import AbstractCheck
 from ....model.CheckResult import CheckResult
 from ....utils import key_exists
 
 
 class BGPRoutesCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=1020)
 
     def check(self, device_name: str, networks: list) -> list[CheckResult]:
         results = []
