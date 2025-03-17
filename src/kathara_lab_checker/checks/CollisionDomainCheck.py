@@ -1,13 +1,19 @@
-from Kathara.exceptions import LinkNotFoundError, MachineNotFoundError
+from Kathara.exceptions import MachineNotFoundError
+from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
-from .AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.checks.AbstractCheck import AbstractCheck
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
 
 
 class CollisionDomainCheck(AbstractCheck):
-    def check(self, machine_t: Machine) -> list[CheckResult]:
 
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=10)
+
+    def check(self, machine_t: Machine) -> list[CheckResult]:
         results = []
         try:
             machine = self.lab.get_machine(machine_t.name)
@@ -21,14 +27,14 @@ class CollisionDomainCheck(AbstractCheck):
                         f"Interface `{iface_num}` of device {machine_t.name} is connected to collision domain "
                         f"`{interface.link.name}` instead of `{interface_t.link.name}`"
                     )
-                    results.append(CheckResult(self.description, False, reason))
+                    results.append(FailedCheck(self.description, reason))
                 else:
-                    results.append(CheckResult(self.description, True, "OK"))
+                    results.append(SuccessfulCheck(self.description))
         except KeyError:
-            results.append(CheckResult(self.description, False, f"No interfaces found with name `eth{iface_num}`"))
+            results.append(FailedCheck(self.description, f"No interfaces found with name `eth{iface_num}`"))
         except MachineNotFoundError as e:
             self.description = f"Checking the collision domain attached to `{machine_t.name}`"
-            results.append(CheckResult(self.description, False, str(e)))
+            results.append(FailedCheck(self.description, str(e)))
         return results
 
     def run(self, template_machines: list[Machine]) -> list[CheckResult]:
@@ -37,3 +43,7 @@ class CollisionDomainCheck(AbstractCheck):
             check_result = self.check(machine_t)
             results.extend(check_result)
         return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        self.logger.info("Checking collision domains...")
+        return self.run(configuration['template_lab'].machines.values())

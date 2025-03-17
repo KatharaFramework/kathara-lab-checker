@@ -13,6 +13,7 @@ The tool is very effective for automatically correct student homeworks, exams an
 ```bash
 python3 -m pip install kathara-lab-checker
 ```
+
 The Python version MUST be `>=3.11`.
 
 ## How does it work?
@@ -33,9 +34,11 @@ The file is composed of three sheets:
 2. `All`: Contains the results for each test.
 3. `Failed`: Contains only the results of failed tests.
 
-By default, reports are generated as a set of CSV files; however, you can choose to generate a consolidated Excel spreadsheet or disable report generation entirely using the `--report-type` flag.
+By default, reports are generated as a set of CSV files; however, you can choose to generate a consolidated Excel
+spreadsheet or disable report generation entirely using the `--report-type` flag.
 
-After all the network scenarios are tested, a combined report (either `results.xlsx` or `results.csv`, as selected) is placed in the network scenarios
+After all the network scenarios are tested, a combined report (either `results.xlsx` or `results.csv`, as selected) is
+placed in the network scenarios
 directory containing all the results for each network scenario, including the reasons for failed tests.
 
 ## Running the example
@@ -55,11 +58,15 @@ python3 -m kathara_lab_checker --config examples/palabra/correction.json --no-ca
 The `--no-cache` flag force to repeat already executed tests.
 
 ## Running on Docker
-To build a Docker image containing both `Kathará` and the `kathara-lab-checker` tool, follow the [guide](scripts/docker).
+
+To build a Docker image containing both `Kathará` and the `kathara-lab-checker` tool, follow
+the [guide](scripts/docker).
 
 ## How to configure?
 
-The `structure` file can be written in either **JSON** or **YAML** format. With **YAML**, you may inline your Kathará lab structure under `lab_inline`. If you specify it like in the following, the tool uses it as your `structure` file automatically.
+The `structure` file can be written in either **JSON** or **YAML** format. With **YAML**, you may inline your Kathará
+lab structure under `lab_inline`. If you specify it like in the following, the tool uses it as your `structure` file
+automatically.
 
 ```yaml
 lab_inline: |

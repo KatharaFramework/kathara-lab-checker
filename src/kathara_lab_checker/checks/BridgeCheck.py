@@ -1,10 +1,14 @@
 import json
+from typing import Any
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
-from kathara_lab_checker.utils import get_output
-from .AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.checks.AbstractCheck import AbstractCheck
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
+from ..utils import get_output, key_exists
 
 
 def filter_by_interface_type(interface_type: str, interfaces: list[dict]):
@@ -19,16 +23,20 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
     return list(
         filter(
             lambda x: "linkinfo" in x
-            and "id" in x["linkinfo"]["info_data"]
-            and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
+                      and "id" in x["linkinfo"]["info_data"]
+                      and x["linkinfo"]["info_data"]["id"] == int(interface_vni),
             interfaces,
         )
     ).pop()
 
 
 class BridgeCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=60)
+
     def check_bridge_interfaces(
-        self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
+            self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
     ) -> (CheckResult, set[str]):
         self.description = (
             f"Checking that interfaces {expected_interfaces} " f"are attached to the same bridge on `{device_name}`"
@@ -48,18 +56,16 @@ class BridgeCheck(AbstractCheck):
 
         if interfaces_not_found:
             return (
-                CheckResult(
+                FailedCheck(
                     self.description,
-                    False,
                     f"Interfaces `{interfaces_not_found}` are not found on {device_name}",
                 ),
                 None,
             )
         if interfaces_without_bridge:
             return (
-                CheckResult(
+                FailedCheck(
                     self.description,
-                    False,
                     f"Interfaces `{interfaces_without_bridge}` are not connected to any bridge on {device_name}",
                 ),
                 None,
@@ -69,36 +75,35 @@ class BridgeCheck(AbstractCheck):
         if masters_num == 1:
             master = list(masters)[0]
             if get_interface_by_name(master, actual_interfaces)["linkinfo"]["info_kind"]:
-                return CheckResult(self.description, True, "OK"), masters
+                return SuccessfulCheck(self.description), masters
         elif masters_num == 0:
-            return CheckResult(self.description, False, "No interfaces attached to the bridge"), masters
+            return FailedCheck(self.description, "No interfaces attached to the bridge"), masters
         elif masters_num > 1:
             reason = "Interfaces are not attached to the same bridge.\n"
             for interface_name, interface_master in interface_masters.items():
                 master_type = get_interface_by_name(interface_master, actual_interfaces)["linkinfo"]["info_kind"]
                 reason += f"`{interface_name}` to `{interface_master}` (type: {master_type})\n"
-            return CheckResult(self.description, False, reason), masters
+            return FailedCheck(self.description, reason), masters
 
     def check_vlan_filtering(self, device_name: str, bridge_info: dict) -> CheckResult:
         self.description = f"Checking if VLAN filtering is enabled on `{bridge_info['ifname']}` of `{device_name}`"
         if (
-            "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
-            and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
+                "vlan_filtering" in bridge_info["linkinfo"]["info_data"]
+                and bridge_info["linkinfo"]["info_data"]["vlan_filtering"] == 1
         ):
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
-            return CheckResult(
+            return FailedCheck(
                 self.description,
-                True,
                 f"VLAN filtering not enabled on `{bridge_info['ifname']}` of `{device_name}`",
             )
 
     def check_vlan_tags(
-        self,
-        device_name: str,
-        interface_name: str,
-        interface_configuration: dict,
-        actual_interface_vlan: dict,
+            self,
+            device_name: str,
+            interface_name: str,
+            interface_configuration: dict,
+            actual_interface_vlan: dict,
     ):
         self.description = (
             f"Checking that vlans `{interface_configuration['vlan_tags']}` "
@@ -109,21 +114,21 @@ class BridgeCheck(AbstractCheck):
         actual_vlans.remove(1)
 
         if expected_vlans == actual_vlans:
-            return CheckResult(self.description, True, "OK")
+            return SuccessfulCheck(self.description)
         else:
             not_configured = expected_vlans.difference(actual_vlans)
             reason = f"Vlans `{not_configured}` are not configured on `{interface_name}` of `{device_name}`"
-            return CheckResult(self.description, False, reason)
+            return FailedCheck(self.description, reason)
 
     def check_vxlan_pvid(
-        self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
+            self, device_name: str, vni: str, pvid: str, actual_interfaces: list[dict], vlans_info: list[dict]
     ):
         self.description = f"Checking that `{device_name}` manages VNI `{vni}` with PVID `{pvid}`"
 
         try:
             interface_name = get_inteface_by_vni(vni, actual_interfaces)["ifname"]
         except IndexError:
-            return CheckResult(self.description, False, f"VNI {vni} not configured on `{device_name}`")
+            return FailedCheck(self.description, f"VNI {vni} not configured on `{device_name}`")
 
         for vlan in vlans_info:
             if vlan["ifname"] == interface_name:
@@ -131,14 +136,13 @@ class BridgeCheck(AbstractCheck):
                 if pvid:
                     actual_pvid = actual_pvid.pop()
                     if actual_pvid == pvid:
-                        return CheckResult(self.description, True, "OK")
+                        return SuccessfulCheck(self.description)
                     else:
-                        return CheckResult(
+                        return FailedCheck(
                             self.description,
-                            False,
                             f"VNI `{vni}` found with pvid `{actual_pvid}` (instead of {pvid})",
                         )
-        return CheckResult(self.description, False, f"VNI `{vni}` not found on `{device_name}`")
+        return FailedCheck(self.description, f"VNI `{vni}` not found on `{device_name}`")
 
     def check_vlan_pvid(self, device_name: str, interface_name: str, interface_pvid: str, actual_interface_vlan: dict):
         self.description = f"Checking that `{interface_name}` of `{device_name}` has pvid {interface_pvid}"
@@ -146,19 +150,24 @@ class BridgeCheck(AbstractCheck):
         if pvid:
             actual_pvid = pvid.pop()
             if interface_pvid == actual_pvid:
-                return CheckResult(self.description, True, "OK")
+                return SuccessfulCheck(self.description)
             else:
                 reason = (
                     f"`{interface_name}` of `{device_name}` has pvid `{actual_pvid}` "
                     f"(instead of `{interface_pvid}`)"
                 )
-                return CheckResult(self.description, False, reason)
+                return FailedCheck(self.description, reason)
         else:
             reason = f"No pvid configured on `{interface_name}` of `{device_name}`"
-            return CheckResult(self.description, False, reason)
+            return FailedCheck(self.description, reason)
 
-    def run(self, devices_to_bridge_configuration: dict[str, list[dict]]) -> list[CheckResult]:
+    def run(self, configuration: dict[str, Any]) -> list[CheckResult]:
         results = []
+
+        if 'bridges' not in configuration:
+            return results
+
+        devices_to_bridge_configuration = configuration["bridges"]
         for device_name, bridges_configuration in devices_to_bridge_configuration.items():
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
             try:
@@ -177,7 +186,7 @@ class BridgeCheck(AbstractCheck):
                     )
                 )
             except MachineNotRunningError as e:
-                return [CheckResult(self.description, False, str(e))]
+                return [FailedCheck(self.description, str(e))]
 
             actual_interfaces = json.loads(ip_link_output)
 
@@ -213,12 +222,11 @@ class BridgeCheck(AbstractCheck):
                         actual_interface_vlans = None
                         try:
                             actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
-                            check_result = CheckResult(description, True, "OK")
+                            check_result = SuccessfulCheck(description)
                             results.append(check_result)
                         except IndexError:
-                            check_result = CheckResult(
+                            check_result = FailedCheck(
                                 description,
-                                False,
                                 f"No VLAN found for for `{interface_name}` on `{device_name}`",
                             )
                             results.append(check_result)
@@ -246,3 +254,10 @@ class BridgeCheck(AbstractCheck):
                             )
                             results.append(check_result)
         return results
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        self.logger.info("Verifying bridges configuration inside devices...")
+        if key_exists(["test", "bridges"], configuration):
+            return self.run(configuration["test"]["bridges"])
+        else:
+            return []

@@ -6,11 +6,11 @@ import os
 import signal
 import tempfile
 import time
-import yaml
 from functools import partial
-from typing import Optional
+from typing import Optional, Any
 
 import coloredlogs
+import yaml
 from Kathara.exceptions import MachineCollisionDomainError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
@@ -18,39 +18,12 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from .TestCollector import TestCollector
-from .checks.BridgeCheck import BridgeCheck
-from .checks.CollisionDomainCheck import CollisionDomainCheck
-from .checks.CustomCommandCheck import CustomCommandCheck
-from .checks.DaemonCheck import DaemonCheck
-from .checks.DeviceExistenceCheck import DeviceExistenceCheck
-from .checks.IPv6EnabledCheck import IPv6EnabledCheck
-from .checks.InterfaceIPCheck import InterfaceIPCheck
-from .checks.KernelRouteCheck import KernelRouteCheck
-from .checks.ReachabilityCheck import ReachabilityCheck
-from .checks.StartupExistenceCheck import StartupExistenceCheck
-from .checks.SysctlCheck import SysctlCheck
-from .checks.applications.dns.DNSAuthorityCheck import DNSAuthorityCheck
-from .checks.applications.dns.DNSRecordCheck import DNSRecordCheck
-from .checks.applications.http.HTTPCheck import HTTPCheck
-from .checks.applications.dns.LocalNSCheck import LocalNSCheck
-from .checks.protocols.AnnouncedNetworkCheck import AnnouncedNetworkCheck
-from .checks.protocols.ProtocolRedistributionCheck import ProtocolRedistributionCheck
-from .checks.protocols.ospf.OSPFNeighborCheck import OSPFNeighborCheck
-from .checks.protocols.ospf.OSPFRoutesCheck import OSPFRoutesCheck
-from .checks.protocols.ospf.OSPFInterfaceCheck import OSPFInterfaceCheck
-from .checks.protocols.bgp.BGPNeighborCheck import BGPNeighborCheck
-from .checks.protocols.bgp.BGPRoutesCheck import BGPRoutesCheck
-from .checks.protocols.evpn.AnnouncedVNICheck import AnnouncedVNICheck
-from .checks.protocols.evpn.EVPNSessionCheck import EVPNSessionCheck
-from .checks.protocols.evpn.VTEPCheck import VTEPCheck
-from .checks.protocols.scion.SCIONAddressCheck import SCIONAddressCheck
-from .checks.protocols.scion.SCIONPathsCheck import SCIONPathsCheck
+from .model.TestCollector import TestCollector
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
-from .model.CheckResult import CheckResult
-from .utils import reverse_dictionary
+from .foundation.checks.CheckFactory import CheckFactory
+from .foundation.model.CheckResult import CheckResult
 
-VERSION = "0.1.10"
+VERSION = "0.1.11"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -64,8 +37,7 @@ def handler(signum, frame, live=False):
 
 def run_on_single_network_scenario(
         lab_path: str,
-        configuration: dict,
-        lab_template: Lab,
+        configuration: dict[str, Any],
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
@@ -128,156 +100,9 @@ def run_on_single_network_scenario(
     else:
         logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
 
-
-    logger.info("Checking that all devices exist...")
-    check_results = DeviceExistenceCheck(lab).run(list(lab_template.machines.keys()))
-    test_collector.add_check_results(lab_name, check_results)
-
-    logger.info("Checking collision domains...")
-    check_results = CollisionDomainCheck(lab).run(list(lab_template.machines.values()))
-    test_collector.add_check_results(lab_name, check_results)
-
-    if "requiring_startup" in configuration["test"]:
-        logger.info("Checking that all required startup files exist...")
-        check_results = StartupExistenceCheck(lab).run(configuration["test"]["requiring_startup"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "ipv6_enabled" in configuration["test"]:
-        logger.info(f"Checking that IPv6 is enabled on devices: {configuration['test']['ipv6_enabled']}")
-        check_results = IPv6EnabledCheck(lab).run(configuration["test"]["ipv6_enabled"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "sysctls" in configuration["test"]:
-        logger.info(f"Checking sysctl configurations on devices...")
-        check_results = SysctlCheck(lab).run(configuration["test"]["sysctls"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "ip_mapping" in configuration["test"]:
-        logger.info("Verifying the IP addresses assigned to devices...")
-        check_results = InterfaceIPCheck(lab).run(configuration["test"]["ip_mapping"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "bridges" in configuration["test"]:
-        logger.info("Verifying the bridges inside devices...")
-        check_results = BridgeCheck(lab).run(configuration["test"]["bridges"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "reachability" in configuration["test"]:
-        logger.info(f"Starting reachability test...")
-        check_results = ReachabilityCheck(lab).run(configuration["test"]["reachability"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "daemons" in configuration["test"]:
-        logger.info(f"Checking if daemons are running...")
-        check_results = DaemonCheck(lab).run(configuration["test"]["daemons"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "protocols" in configuration["test"]:
-        logger.info("Checking routing daemons configurations...")
-        for daemon_name, daemon_test in configuration["test"]["protocols"].items():
-            if daemon_name == "bgpd":
-                logger.info(f"Check BGP peerings configurations...")
-
-                if "neighbors" in daemon_test:
-                    check_results = BGPNeighborCheck(lab).run(daemon_test["neighbors"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-                if "networks" in daemon_test:
-                    logger.info(f"Checking BGP announces...")
-                    check_results = AnnouncedNetworkCheck(lab).run(daemon_name, daemon_test["networks"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-                if "routes" in daemon_test:
-                    logger.info(f"Checking BGP Routes...")
-                    check_results = BGPRoutesCheck(lab).run(daemon_test["routes"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-                if "evpn" in daemon_test:
-                    logger.info(f"Checking EVPN configurations...")
-                    evpn_test = daemon_test["evpn"]
-                    for test in evpn_test:
-                        if "evpn_sessions" in test:
-                            logger.info(f"Checking EVPN session configuration...")
-                            check_results = EVPNSessionCheck(lab).run(evpn_test["evpn_sessions"])
-                            test_collector.add_check_results(lab_name, check_results)
-
-                        if "vtep_devices" in test:
-                            logger.info(f"Checking VTEP devices configuration...")
-                            check_results = VTEPCheck(lab).run(evpn_test["vtep_devices"])
-                            test_collector.add_check_results(lab_name, check_results)
-
-                            logger.info(f"Checking BGP VNIs configurations...")
-                            check_results = AnnouncedVNICheck(lab).run(
-                                evpn_test["vtep_devices"], evpn_test["evpn_sessions"]
-                            )
-                            test_collector.add_check_results(lab_name, check_results)
-
-            if daemon_name == "ospfd":
-                if "neighbors" in daemon_test:
-                    logger.info("Checking OSPF neighbors...")
-                    check_results = OSPFNeighborCheck(lab).run(daemon_test["neighbors"])
-                    test_collector.add_check_results(lab_name, check_results)
-                if "routes" in daemon_test:
-                    logger.info("Checking OSPF routes...")
-                    check_results = OSPFRoutesCheck(lab).run(daemon_test["routes"])
-                    test_collector.add_check_results(lab_name, check_results)
-                if "interfaces" in daemon_test:
-                    logger.info("Checking OSPF interface parameters...")
-                    check_results = OSPFInterfaceCheck(lab).run(daemon_test["interfaces"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-            if daemon_name == "sciond":
-                if "address" in daemon_test:
-                    logger.info("Checking SCION addresses...")
-                    check_results = SCIONAddressCheck(lab).run(daemon_test["address"])
-                    test_collector.add_check_results(lab_name, check_results)
-                if "paths" in daemon_test:
-                    logger.info("Checking SCION paths...")
-                    check_results = SCIONPathsCheck(lab).run(daemon_test["paths"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-            if "injections" in daemon_test:
-                logger.info(f"Checking {daemon_name} protocols redistributions...")
-                check_results = ProtocolRedistributionCheck(lab).run(daemon_name, daemon_test["injections"])
-                test_collector.add_check_results(lab_name, check_results)
-
-    if "kernel_routes" in configuration["test"]:
-        logger.info(f"Checking Routing Tables...")
-        check_results = KernelRouteCheck(lab).run(configuration["test"]["kernel_routes"])
-        test_collector.add_check_results(lab_name, check_results)
-
-    if "applications" in configuration["test"]:
-        for application_name, application in configuration["test"]["applications"].items():
-            if application_name == "dns":
-                if "authoritative" in application:
-                    logger.info("Checking DNS configurations...")
-                    check_results = DNSAuthorityCheck(lab).run(
-                        application["authoritative"],
-                        list(application["local_ns"].keys()),
-                        configuration["test"]["ip_mapping"],
-                    )
-                    test_collector.add_check_results(lab_name, check_results)
-
-                if "local_ns" in application:
-                    logger.info("Checking local name servers configurations...")
-                    check_results = LocalNSCheck(lab).run(application["local_ns"])
-                    test_collector.add_check_results(lab_name, check_results)
-
-                if "records" in application:
-                    logger.info(f"Starting test for DNS records...")
-                    check_results = DNSRecordCheck(lab).run(
-                        application["records"], reverse_dictionary(application["local_ns"]).keys()
-                    )
-                    test_collector.add_check_results(lab_name, check_results)
-
-            if application_name == "http":
-                logger.info("Checking HTTP endpoints via cURL...")
-                check_results = HTTPCheck(lab).run(application)
-                test_collector.add_check_results(lab_name, check_results)            
-
-    if "custom_commands" in configuration["test"]:
-        logger.info("Checking custom commands output...")
-        check_results = CustomCommandCheck(lab).run(configuration["test"]["custom_commands"])
+    check_instances = CheckFactory().instantiate_classes_from_package_name("kathara_lab_checker.checks", lab)
+    for check in sorted(check_instances, key=lambda x: x.priority):
+        check_results = check.run_from_configuration(configuration)
         test_collector.add_check_results(lab_name, check_results)
 
     if not live and not keep_open:
@@ -303,7 +128,6 @@ def run_on_single_network_scenario(
 def run_on_multiple_network_scenarios(
         labs_path: str,
         configuration: dict,
-        lab_template: Lab,
         no_cache: bool = False,
         live: bool = False,
         keep_open: bool = False,
@@ -326,8 +150,9 @@ def run_on_multiple_network_scenarios(
                 key=str.casefold,
             )
     ):
+
         test_results = run_on_single_network_scenario(
-            os.path.join(labs_path, lab_name), configuration, lab_template, no_cache, live, keep_open, report_type
+            os.path.join(labs_path, lab_name), configuration, no_cache, live, keep_open, report_type
         )
 
         if test_results:
@@ -406,6 +231,7 @@ def parse_arguments():
 
     return parser.parse_args()
 
+
 def load_config_and_lab(config_path: str):
     """
     Loads a correction file as JSON or YAML. 
@@ -433,9 +259,10 @@ def load_config_and_lab(config_path: str):
         raise ValueError("No valid structure file found.")
     return conf, sfile
 
+
 def main():
     args = parse_arguments()
-    
+
     signal.signal(signal.SIGINT, partial(handler, live=args.live))
 
     logger = logging.getLogger("kathara-lab-checker")
@@ -459,13 +286,14 @@ def main():
         conf_name=os.path.basename(structure),
     )
 
+    conf["template_lab"] = template_lab
     if args.lab:
         run_on_single_network_scenario(
-            args.lab, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
+            args.lab, conf, args.no_cache, args.live, args.keep_open, args.report_type
         )
     elif args.labs:
         run_on_multiple_network_scenarios(
-            args.labs, conf, template_lab, args.no_cache, args.live, args.keep_open, args.report_type
+            args.labs, conf, args.no_cache, args.live, args.keep_open, args.report_type
         )
 
 
