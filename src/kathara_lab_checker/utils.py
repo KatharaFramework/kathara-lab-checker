@@ -62,3 +62,13 @@ def reverse_dictionary(dictionary: dict):
         for v in values:
             reversed_dict[v] = reversed_dict.get(v, []) + [k]
     return reversed_dict
+
+
+def key_exists(key_list, dictionary):
+    current_configuration = dictionary
+    for k in key_list:
+        if k in current_configuration:
+            current_configuration = current_configuration[k]
+        else:
+            return False
+    return True

@@ -2,12 +2,19 @@ import ipaddress
 import json
 
 from Kathara.exceptions import MachineNotRunningError
+from Kathara.model.Lab import Lab
 
-from .AbstractCheck import AbstractCheck
-from ..model.CheckResult import CheckResult
+from ..foundation.checks.AbstractCheck import AbstractCheck
+from ..foundation.model.CheckResult import CheckResult
+from ..model.FailedCheck import FailedCheck
+from ..model.SuccessfulCheck import SuccessfulCheck
+from ..utils import key_exists
 
 
 class InterfaceIPCheck(AbstractCheck):
+
+    def __init__(self, lab: Lab, description: str = None):
+        super().__init__(lab, description=description, priority=50)
 
     def check(self, device_name: str, interface_number: int, ip: str, dumped_iface: dict) -> CheckResult:
         interface_name = f"eth{interface_number}" if interface_number.isnumeric() else interface_number
@@ -16,7 +23,7 @@ class InterfaceIPCheck(AbstractCheck):
         try:
             iface_info = next(filter(lambda x: x["ifname"] == f"{interface_name}", dumped_iface))
         except StopIteration:
-            return CheckResult(self.description, False, f"Interface `{interface_name}` not found on `{device_name}`")
+            return FailedCheck(self.description, f"Interface `{interface_name}` not found on `{device_name}`")
 
         ip_address = ipaddress.ip_interface(ip)
 
@@ -28,16 +35,16 @@ class InterfaceIPCheck(AbstractCheck):
                 assigned_ips.append(f"{addr_info['local']}/{addr_info['prefixlen']}")
                 if addr_info["local"] == str(ip_address.ip):
                     if addr_info["prefixlen"] == prefix_len:
-                        return CheckResult(self.description, True, "OK")
+                        return SuccessfulCheck(self.description)
                     else:
                         reason = f"The IP address has a wrong netmask ({addr_info['prefixlen']})"
-                        return CheckResult(self.description, False, reason)
+                        return FailedCheck(self.description, reason)
 
         reason = (
             f"The interface `{iface_info['ifname']}` of `{device_name}` "
             f"has the following IP addresses: {assigned_ips}`."
         )
-        return CheckResult(self.description, False, reason)
+        return FailedCheck(self.description, reason)
 
     def run(self, ip_mapping: dict) -> list[CheckResult]:
         results = []
@@ -59,3 +66,10 @@ class InterfaceIPCheck(AbstractCheck):
         )
 
         return json.loads(stdout)
+
+    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
+        results = []
+        if key_exists(["test", "ip_mapping"], configuration):
+            self.logger.info("Verifying the IP addresses assigned to devices...")
+            results.extend(self.run(configuration["test"]["ip_mapping"]))
+        return results

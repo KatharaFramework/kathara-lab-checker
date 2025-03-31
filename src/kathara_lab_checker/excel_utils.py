@@ -4,8 +4,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 
-from .model.CheckResult import CheckResult
-from .TestCollector import TestCollector
+from .foundation.model.CheckResult import CheckResult
+from .model.TestCollector import TestCollector
 
 
 def write_final_results_to_excel(test_collector: TestCollector, path: str):
