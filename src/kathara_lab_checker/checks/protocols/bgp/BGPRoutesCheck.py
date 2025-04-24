@@ -60,6 +60,7 @@ class BGPRoutesCheck(AbstractCheck):
                         f"BGP network {network['route']} has a different number of alternatives. Expected: {len(network['aspath'])} Actual: {len(router_route)}",
                     )
                 )
+                continue
 
             supposed_aspaths = list(tuple(inner) for inner in network['aspath'])
             router_aspaths = list(
