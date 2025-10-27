@@ -226,7 +226,7 @@ def parse_arguments():
         required=False,
         choices=["xlsx", "csv", "none"],
         default="csv",
-        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report"
+        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report. Default: csv."
     )
 
     return parser.parse_args()
