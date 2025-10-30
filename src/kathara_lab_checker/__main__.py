@@ -23,7 +23,7 @@ from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .foundation.checks.CheckFactory import CheckFactory
 from .foundation.model.CheckResult import CheckResult
 
-VERSION = "0.1.11"
+VERSION = "0.1.12"
 CURRENT_LAB: Optional[Lab] = None
 
 
