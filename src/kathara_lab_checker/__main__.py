@@ -158,11 +158,11 @@ def run_on_multiple_network_scenarios(
         if test_results:
             test_collector.add_check_results(lab_name, test_results.tests[lab_name])
 
-    if test_collector.tests and report_type != "none":
+    if test_collector.tests:
         logger.info(f"Writing All Test Results into: {labs_path} as {report_type.upper()} report...")
         if report_type == "xlsx":
             write_final_results_to_excel(test_collector, labs_path)
-        elif report_type == "csv":
+        else:
             from .csv_utils import write_final_results_to_csv
             write_final_results_to_csv(test_collector, labs_path)
 
