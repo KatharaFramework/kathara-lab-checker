@@ -41,6 +41,15 @@ class BGPRoutesCheck(AbstractCheck):
 
         output = json.loads(output)
 
+        if not "routes" in output:
+            results.append(
+                FailedCheck(
+                    self.description,
+                    f"BGP routes not found in {device_name}",
+                )
+            )
+            return results
+
         router_routes = output["routes"]
 
         for network in networks:
