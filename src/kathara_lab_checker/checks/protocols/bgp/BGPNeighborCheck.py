@@ -1,6 +1,6 @@
 import json
 
-from Kathara.exceptions import MachineNotRunningError
+from Kathara.exceptions import MachineNotRunningError, MachineBinaryError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
@@ -26,6 +26,12 @@ class BGPNeighborCheck(AbstractCheck):
                 stream=False,
             )
         except MachineNotRunningError as e:
+            results.append(FailedCheck(f"Checking {device_name} BGP neighbors", str(e)))
+            return results
+        except MachineBinaryError as e:
+            results.append(FailedCheck(f"Checking {device_name} BGP neighbors", str(e)))
+            return results
+        except Exception as e:
             results.append(FailedCheck(f"Checking {device_name} BGP neighbors", str(e)))
             return results
 
