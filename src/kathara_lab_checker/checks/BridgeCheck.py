@@ -161,13 +161,9 @@ class BridgeCheck(AbstractCheck):
             reason = f"No pvid configured on `{interface_name}` of `{device_name}`"
             return FailedCheck(self.description, reason)
 
-    def run(self, configuration: dict[str, Any]) -> list[CheckResult]:
+    def run(self, devices_to_bridge_configuration: dict[str, Any]) -> list[CheckResult]:
         results = []
 
-        if 'bridges' not in configuration:
-            return results
-
-        devices_to_bridge_configuration = configuration["bridges"]
         for device_name, bridges_configuration in devices_to_bridge_configuration.items():
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
             try:
@@ -256,8 +252,8 @@ class BridgeCheck(AbstractCheck):
         return results
 
     def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        self.logger.info("Verifying bridges configuration inside devices...")
         if key_exists(["test", "bridges"], configuration):
+            self.logger.info("Verifying bridges configuration inside devices...")
             return self.run(configuration["test"]["bridges"])
         else:
             return []
