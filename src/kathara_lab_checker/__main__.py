@@ -18,6 +18,7 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
+from model.FailedCheck import FailedCheck
 from .model.TestCollector import TestCollector
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .foundation.checks.CheckFactory import CheckFactory
@@ -70,12 +71,12 @@ def run_on_single_network_scenario(
         CURRENT_LAB = lab
     except IOError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
     except MachineCollisionDomainError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
 
