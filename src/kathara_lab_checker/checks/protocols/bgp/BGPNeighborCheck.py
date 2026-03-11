@@ -47,13 +47,21 @@ class BGPNeighborCheck(AbstractCheck):
             return results
         output = json.loads(output)
 
-        if "ipv4Unicast" in output:
-            output = output["ipv4Unicast"]
+        address_family = "ipv4Unicast"
+
+        # Minimal extension: allow YAML entries to request IPv6 explicitly
+        if neighbors and isinstance(neighbors, list):
+            first_neighbor = neighbors[0]
+            if first_neighbor.get("address_family") == "ipv6":
+                address_family = "ipv6Unicast"
+
+        if address_family in output:
+            output = output[address_family]
         else:
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
-                    f"{device_name} has no IPv4 BGP peerings",
+                    f"{device_name} has no {address_family} BGP peerings",
                 )
             )
             return results
