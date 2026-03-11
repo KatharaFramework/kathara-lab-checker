@@ -111,8 +111,12 @@ In the following you will find the possible values for the configuration file.
       "bgpd": { # Specific checks for BGP
         "neighbors": { # Check that a peering is up
           "<device_name>": [
-            {"ip": <neighbour_ip>, "asn": <neighbor_asn>}, # Check that a peering is up between the device and 
-                                                           # the specified neighbour ip
+            {
+              "ip": <neighbour_ip>,
+              "asn": <neighbor_asn>,
+              "address_family": "<ipv4|ipv6>" # Optional. Select the BGP address family to validate.
+                                              # If omitted, the checker defaults to IPv4.
+            }
           ],
         },
         "networks": {
