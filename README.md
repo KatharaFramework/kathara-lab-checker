@@ -109,7 +109,7 @@ In the following you will find the possible values for the configuration file.
     },
     "protocols": { # Checks on routing protocols
       "bgpd": { # Specific checks for BGP
-        "neighbors": { # Check that a peering is up
+        "neighbors": { # Check that a peering is up betweend the device and the specified neighbour ip
           "<device_name>": [
             {
               "ip": <neighbour_ip>,
