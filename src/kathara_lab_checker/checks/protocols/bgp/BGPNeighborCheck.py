@@ -1,4 +1,5 @@
 import json
+import ipaddress
 
 from Kathara.exceptions import MachineNotRunningError, MachineBinaryError
 from Kathara.model.Lab import Lab
@@ -35,7 +36,7 @@ class BGPNeighborCheck(AbstractCheck):
             results.append(FailedCheck(f"Checking {device_name} BGP neighbors", str(e)))
             return results
 
-        output = stdout.decode("utf-8") if stdout else None
+        command_output = stdout.decode("utf-8") if stdout else None
 
         if stderr or exit_code != 0:
             results.append(
@@ -45,64 +46,85 @@ class BGPNeighborCheck(AbstractCheck):
                 )
             )
             return results
-        output = json.loads(output)
+        command_output = json.loads(command_output)
 
-        address_family = "ipv4Unicast"
+        check_ipv4 = False
+        check_ipv6 = False
+        for neighbor in neighbors:
+            if ipaddress.ip_address(neighbor["ip"]).version == 4:
+                check_ipv4 = True
+            else:
+                check_ipv6 = True
 
-        # Minimal extension: allow YAML entries to request IPv6 explicitly
-        if neighbors and isinstance(neighbors, list):
-            first_neighbor = neighbors[0]
-            if first_neighbor.get("address_family") == "ipv6":
-                address_family = "ipv6Unicast"
+        output = {4: None, 6: None}
+        if "ipv4Unicast" in command_output and 'peers' in command_output["ipv4Unicast"]:
+            output[4] = command_output["ipv4Unicast"]["peers"]
 
-        if address_family in output:
-            output = output[address_family]
-        else:
-            results.append(
-                FailedCheck(
-                    f"Checking {device_name} BGP neighbors",
-                    f"{device_name} has no {address_family} BGP peerings",
-                )
-            )
-            return results
+        if "ipv6Unicast" in command_output and 'peers' in command_output["ipv6Unicast"]:
+            output[6] = command_output["ipv6Unicast"]["peers"]
 
-        if "peers" in output:
-            output = output["peers"]
-        else:
+        ipv4_peerings = check_ipv4
+        if check_ipv4 and output[4] is None:
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
                     f"{device_name} has no IPv4 BGP neighbors",
                 )
             )
-            return results
+            ipv4_peerings = False
 
-        router_neighbors = output.keys()
+        ipv6_peerings = check_ipv6
+        if check_ipv6 and output[6] is None:
+            results.append(
+                FailedCheck(
+                    f"Checking {device_name} BGP neighbors",
+                    f"{device_name} has no IPv6 BGP neighbors",
+                )
+            )
+            ipv6_peerings = False
+
+
+
+        router_neighbors = (set(output[4].keys()) if output[4] else set()) | (
+            set(output[6].keys()) if output[6] else set()
+        )
         expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
 
-        if len(router_neighbors) > len(expected_neighbors):
+        print(f"Router neighbors: {router_neighbors}")
+        print(f"Expected neighbors: {expected_neighbors}")
+
+        extra_neighbors = router_neighbors - expected_neighbors
+
+        if extra_neighbors:
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
-                    f"{device_name} has {len(output) - len(neighbors)} extra BGP neighbors {router_neighbors - expected_neighbors}",
+                    f"{device_name} has extra BGP neighbors {extra_neighbors}",
                 )
             )
 
-        diff_neighbors = router_neighbors - expected_neighbors
+        missing_neighbors = expected_neighbors - router_neighbors
 
-        if diff_neighbors:
+        if missing_neighbors:
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
-                    f"{device_name} has extra BGP neighbors {diff_neighbors}",
+                    f"{device_name} is missing BGP neighbors {missing_neighbors}",
                 )
             )
 
+        if not ipv4_peerings and not ipv6_peerings:
+            return results
+        
         for neighbor in neighbors:
             neighbor_ip = neighbor["ip"]
+            neighbor_ip_version = ipaddress.ip_address(neighbor_ip).version
             neighbor_asn = neighbor["asn"]
 
-            if not neighbor_ip in output:
+            if not output[neighbor_ip_version]:
+                continue
+
+            if not neighbor_ip in output[neighbor_ip_version]:
                 results.append(
                     FailedCheck(
                         f"Checking {device_name} BGP neighbors",
@@ -111,14 +133,17 @@ class BGPNeighborCheck(AbstractCheck):
                 )
                 continue
 
-            peer = output[neighbor_ip]
+            peer = output[neighbor_ip_version][neighbor_ip]
 
-            check_description = f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}"
+            check_description = (
+                f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}"
+            )
             if peer["remoteAs"] != neighbor_asn:
                 results.append(
-                    FailedCheck(check_description,
-                                f"{device_name} has neighbor {neighbor_ip} with ASN: {peer['remoteAs']} instead of {neighbor_asn}",
-                                )
+                    FailedCheck(
+                        check_description,
+                        f"{device_name} has neighbor {neighbor_ip} with ASN: {peer['remoteAs']} instead of {neighbor_asn}",
+                    )
                 )
             else:
                 results.append(SuccessfulCheck(check_description))
@@ -151,5 +176,7 @@ class BGPNeighborCheck(AbstractCheck):
         results = []
         if key_exists(["test", "protocols", "bgpd", "neighbors"], configuration):
             self.logger.info(f"Checking BGP neighbors...")
-            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['neighbors']))
+            results.extend(
+                self.run(configuration["test"]["protocols"]["bgpd"]["neighbors"])
+            )
         return results

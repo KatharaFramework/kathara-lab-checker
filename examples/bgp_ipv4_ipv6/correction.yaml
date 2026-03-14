@@ -27,12 +27,12 @@ test:
 
   ip_mapping:
     r1:
-      lo: "2001:db8:1::1/128"
-      eth0: "2001:db8:12::1/64"
+      lo: "192.168.1.1/32"
+      eth0: "100.0.0.2/24"
 
     r2:
       lo: "2001:db8:1::2/128"
-      eth0: "2001:db8:12::2/64"
+      eth0: "100.0.0.1/24"
       eth1: "2001:db8:23::2/64"
       eth2: "2001:db8:24::2/64"
 
@@ -70,61 +70,55 @@ test:
     r6:
       - bgpd
 
-  # Using the optional "address_family: ipv6" field
   protocols:
     bgpd:
       neighbors:
         r1:
-          - ip: "2001:db8:12::2"
+          - ip: "100.0.0.1"
             asn: 1
-            address_family: ipv6
-
+           
         r2:
-          - ip: "2001:db8:12::1"
+          - ip: "100.0.0.2"
             asn: 2
-            address_family: ipv6
+           
           - ip: "2001:db8:23::3"
             asn: 1
-            address_family: ipv6
+           
           - ip: "2001:db8:24::4"
             asn: 1
-            address_family: ipv6
-
+           
         r3:
           - ip: "2001:db8:35::5"
             asn: 3
-            address_family: ipv6
+           
           - ip: "2001:db8:23::2"
             asn: 1
-            address_family: ipv6
+           
           - ip: "2001:db8:34::4"
             asn: 1
-            address_family: ipv6
-
+           
         r4:
           - ip: "2001:db8:46::6"
             asn: 4
-            address_family: ipv6
+           
           - ip: "2001:db8:24::2"
             asn: 1
-            address_family: ipv6
+           
           - ip: "2001:db8:34::3"
             asn: 1
-            address_family: ipv6
-
+           
         r5:
           - ip: "2001:db8:35::3"
             asn: 1
-            address_family: ipv6
-
+           
         r6:
           - ip: "2001:db8:46::4"
             asn: 1
-            address_family: ipv6
+           
 
       networks:
         r1:
-          - "2001:db8:1::1/128"
+          - "192.168.1.1/32"
         r2:
           - "2001:db8:1::2/128"
         r3:
