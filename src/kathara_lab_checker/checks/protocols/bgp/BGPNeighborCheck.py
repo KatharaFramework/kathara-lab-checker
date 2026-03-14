@@ -48,6 +48,7 @@ class BGPNeighborCheck(AbstractCheck):
             return results
         command_output = json.loads(command_output)
 
+        # Determine which address-family needs to be checked
         check_ipv4 = False
         check_ipv6 = False
         for neighbor in neighbors:
@@ -65,6 +66,7 @@ class BGPNeighborCheck(AbstractCheck):
 
         ipv4_peerings = check_ipv4
         if check_ipv4 and output[4] is None:
+            # if we expected to find IPv4 peerings but the output doesn't contain any
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
@@ -75,6 +77,7 @@ class BGPNeighborCheck(AbstractCheck):
 
         ipv6_peerings = check_ipv6
         if check_ipv6 and output[6] is None:
+            # if we expected to find IPv6 peerings but the output doesn't contain any
             results.append(
                 FailedCheck(
                     f"Checking {device_name} BGP neighbors",
@@ -83,15 +86,10 @@ class BGPNeighborCheck(AbstractCheck):
             )
             ipv6_peerings = False
 
-
-
         router_neighbors = (set(output[4].keys()) if output[4] else set()) | (
             set(output[6].keys()) if output[6] else set()
         )
         expected_neighbors = set(neighbor["ip"] for neighbor in neighbors)
-
-        print(f"Router neighbors: {router_neighbors}")
-        print(f"Expected neighbors: {expected_neighbors}")
 
         extra_neighbors = router_neighbors - expected_neighbors
 
@@ -113,6 +111,7 @@ class BGPNeighborCheck(AbstractCheck):
                 )
             )
 
+        # If there are no peerings configured or to verify, we can skip the rest of the checks
         if not ipv4_peerings and not ipv6_peerings:
             return results
         
