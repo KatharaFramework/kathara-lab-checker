@@ -18,11 +18,10 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from model.FailedCheck import FailedCheck
-from .model.TestCollector import TestCollector
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .foundation.checks.CheckFactory import CheckFactory
-from .foundation.model.CheckResult import CheckResult
+from .model.FailedCheck import FailedCheck
+from .model.TestCollector import TestCollector
 
 VERSION = "0.1.13"
 CURRENT_LAB: Optional[Lab] = None
