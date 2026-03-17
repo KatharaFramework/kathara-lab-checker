@@ -255,6 +255,9 @@ def load_config_and_lab(config_path: str):
             conf["structure"] = tmp.name
 
     sfile = conf.get("structure")
+    if not os.path.isabs(sfile):
+        sfile = os.path.join(os.path.dirname(config_path), sfile)
+
     if not sfile or not os.path.exists(sfile):
         raise ValueError("No valid structure file found.")
     return conf, sfile
