@@ -52,13 +52,14 @@ class BGPNeighborCheck(AbstractCheck):
         check_ipv4 = False
         check_ipv6 = False
         for neighbor in neighbors:
-            if "eth" in neighbor["ip"]:
+            # For unnumbered peerings, check IPv4 because FRR reports unnumbered neighbors under the IPv4 address family.
+            try:
+                if ipaddress.ip_address(neighbor["ip"]).version == 4:
+                    check_ipv4 = True
+                else:
+                    check_ipv6 = True
+            except ValueError:
                 check_ipv4 = True
-                continue
-            if ipaddress.ip_address(neighbor["ip"]).version == 4:
-                check_ipv4 = True
-            else:
-                check_ipv6 = True
 
         output = {4: None, 6: None}
         if "ipv4Unicast" in command_output and "peers" in command_output["ipv4Unicast"]:
@@ -120,7 +121,6 @@ class BGPNeighborCheck(AbstractCheck):
 
         for neighbor in neighbors:
             neighbor_ip = neighbor["ip"]
-            neighbor_ip_version = None
             try:
                 neighbor_ip_version = ipaddress.ip_address(neighbor_ip).version
             except ValueError:
