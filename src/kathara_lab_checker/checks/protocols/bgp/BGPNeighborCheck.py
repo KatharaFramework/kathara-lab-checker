@@ -52,16 +52,19 @@ class BGPNeighborCheck(AbstractCheck):
         check_ipv4 = False
         check_ipv6 = False
         for neighbor in neighbors:
+            if "eth" in neighbor["ip"]:
+                check_ipv4 = True
+                continue
             if ipaddress.ip_address(neighbor["ip"]).version == 4:
                 check_ipv4 = True
             else:
                 check_ipv6 = True
 
         output = {4: None, 6: None}
-        if "ipv4Unicast" in command_output and 'peers' in command_output["ipv4Unicast"]:
+        if "ipv4Unicast" in command_output and "peers" in command_output["ipv4Unicast"]:
             output[4] = command_output["ipv4Unicast"]["peers"]
 
-        if "ipv6Unicast" in command_output and 'peers' in command_output["ipv6Unicast"]:
+        if "ipv6Unicast" in command_output and "peers" in command_output["ipv6Unicast"]:
             output[6] = command_output["ipv6Unicast"]["peers"]
 
         ipv4_peerings = check_ipv4
@@ -114,10 +117,14 @@ class BGPNeighborCheck(AbstractCheck):
         # If there are no peerings configured or to verify, we can skip the rest of the checks
         if not ipv4_peerings and not ipv6_peerings:
             return results
-        
+
         for neighbor in neighbors:
             neighbor_ip = neighbor["ip"]
-            neighbor_ip_version = ipaddress.ip_address(neighbor_ip).version
+            neighbor_ip_version = None
+            try:
+                neighbor_ip_version = ipaddress.ip_address(neighbor_ip).version
+            except ValueError:
+                neighbor_ip_version = 4
             neighbor_asn = neighbor["asn"]
 
             if not output[neighbor_ip_version]:
@@ -134,9 +141,7 @@ class BGPNeighborCheck(AbstractCheck):
 
             peer = output[neighbor_ip_version][neighbor_ip]
 
-            check_description = (
-                f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}"
-            )
+            check_description = f"{device_name} has bgp neighbor {neighbor_ip} AS{neighbor_asn}"
             if peer["remoteAs"] != neighbor_asn:
                 results.append(
                     FailedCheck(
@@ -175,7 +180,5 @@ class BGPNeighborCheck(AbstractCheck):
         results = []
         if key_exists(["test", "protocols", "bgpd", "neighbors"], configuration):
             self.logger.info(f"Checking BGP neighbors...")
-            results.extend(
-                self.run(configuration["test"]["protocols"]["bgpd"]["neighbors"])
-            )
+            results.extend(self.run(configuration["test"]["protocols"]["bgpd"]["neighbors"]))
         return results
