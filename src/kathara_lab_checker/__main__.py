@@ -23,7 +23,7 @@ from .foundation.checks.CheckFactory import CheckFactory
 from .model.FailedCheck import FailedCheck
 from .model.TestCollector import TestCollector
 
-VERSION = "0.1.13"
+VERSION = "0.1.14"
 CURRENT_LAB: Optional[Lab] = None
 
 
