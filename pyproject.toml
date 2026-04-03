@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "kathara>=3.7.7",
+    "kathara>=3.8.1",
     "jc>=1.24.0",
     "openpyxl>=3.1.2",
     "tqdm>=4",
@@ -41,7 +41,7 @@ kathara_lab_checker = "kathara_lab_checker.__main__:main"
 "Source" = "https://github.com/KatharaFramework/kathara-lab-checker"
 
 [build-system]
-requires = ["setuptools>=61.2", "wheel"]
+requires = ["setuptools<=81", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
