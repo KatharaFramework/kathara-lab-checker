@@ -1,0 +1,5 @@
+ip -6 addr add 2001:db8:1::4/128 dev lo
+ip -6 addr add 2001:db8:46::4/64 dev eth0
+ip -6 addr add 2001:db8:24::4/64 dev eth1
+ip -6 addr add 2001:db8:34::4/64 dev eth2
+systemctl start frr

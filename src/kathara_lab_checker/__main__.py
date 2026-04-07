@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+
+import warnings
+
+# Suppress deprecation warning from fs library using pkg_resources
+# See: https://github.com/PyFilesystem/pyfilesystem2/issues/577
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+
 import argparse
 import json
 import logging
@@ -18,12 +25,12 @@ from Kathara.parser.netkit.LabParser import LabParser
 from Kathara.setting.Setting import Setting
 from tqdm import tqdm
 
-from .model.TestCollector import TestCollector
 from .excel_utils import write_final_results_to_excel, write_result_to_excel
 from .foundation.checks.CheckFactory import CheckFactory
-from .foundation.model.CheckResult import CheckResult
+from .model.FailedCheck import FailedCheck
+from .model.TestCollector import TestCollector
 
-VERSION = "0.1.13"
+VERSION = "0.1.14"
 CURRENT_LAB: Optional[Lab] = None
 
 
@@ -70,12 +77,12 @@ def run_on_single_network_scenario(
         CURRENT_LAB = lab
     except IOError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
     except MachineCollisionDomainError as e:
         logger.warning(f"{str(e)} Skipping directory")
-        check_results = [CheckResult("The lab.conf cannot be parsed", False, str(e))]
+        check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
 
@@ -255,6 +262,9 @@ def load_config_and_lab(config_path: str):
             conf["structure"] = tmp.name
 
     sfile = conf.get("structure")
+    if not os.path.isabs(sfile):
+        sfile = os.path.join(os.path.dirname(config_path), sfile)
+
     if not sfile or not os.path.exists(sfile):
         raise ValueError("No valid structure file found.")
     return conf, sfile
