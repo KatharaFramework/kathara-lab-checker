@@ -1,10 +1,33 @@
 #!/usr/bin/env python3
 
+import sys
 import warnings
 
 # Suppress deprecation warning from fs library using pkg_resources
 # See: https://github.com/PyFilesystem/pyfilesystem2/issues/577
 warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+
+# Suppress benign "Exception ignored while finalizing file <urllib3 ...HTTPResponse>"
+# noise emitted when a timed-out check's abandoned daemon thread leaves a Docker exec
+# stream open and it is finalized at GC/shutdown. See AbstractCheck.check_with_timeout.
+_previous_unraisablehook = sys.unraisablehook
+
+
+def _quiet_urllib3_finalize(args):
+    # On finalization errors CPython routes through PyErr_FormatUnraisable, which
+    # leaves args.object as None and embeds the object's repr in args.err_msg
+    # (e.g. "Exception ignored while finalizing file <urllib3.response.HTTPResponse ...>").
+    # Match either signal so this works across CPython versions.
+    obj = getattr(args, "object", None)
+    if obj is not None and type(obj).__module__.split(".")[0] == "urllib3":
+        return
+    err_msg = getattr(args, "err_msg", None) or ""
+    if "urllib3" in err_msg:
+        return
+    _previous_unraisablehook(args)
+
+
+sys.unraisablehook = _quiet_urllib3_finalize
 
 import argparse
 import json
@@ -107,10 +130,10 @@ def run_on_single_network_scenario(
     else:
         logger.info(f"Verifying lab structure using lab.conf template in: {configuration['structure']}")
 
-    check_instances = CheckFactory().instantiate_classes_from_package_name("kathara_lab_checker.checks", lab)
+    check_instances = CheckFactory().instantiate_classes_from_package_name("kathara_lab_checker.checks", lab, configuration)
     for check in sorted(check_instances, key=lambda x: x.priority):
-        check_results = check.run_from_configuration(configuration)
-        test_collector.add_check_results(lab_name, check_results)
+        check.run_from_configuration()
+        test_collector.add_check_results(lab_name, check.results)
 
     if not live and not keep_open:
         logger.info("Undeploying Network Scenario")

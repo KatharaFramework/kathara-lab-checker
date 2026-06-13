@@ -10,10 +10,10 @@ from ..utils import get_output, key_exists
 
 class ReachabilityCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=70)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=70)
 
-    def check(self, device_name: str, destination: str) -> CheckResult:
+    def check(self, device_name: str, destination: str):
 
         if destination.startswith("!"):
             destination = destination[1:]
@@ -30,7 +30,8 @@ class ReachabilityCheck(AbstractCheck):
                 lab_hash=self.lab.hash,
             )
         except Exception as e:
-            return CheckResult(self.description, invert ^ False, str(e))
+            self.results.append(CheckResult(self.description, invert ^ False, str(e)))
+            return
 
         output = get_output(exec_output_gen).replace("ERROR: ", "")
 
@@ -38,29 +39,24 @@ class ReachabilityCheck(AbstractCheck):
             parsed_output = jc.parse("ping", output, quiet=True)
             if int(parsed_output["packets_received"]) > 0:
                 if invert:
-                    return FailedCheck(self.description, f"`{device_name}` can reach `{destination}`.")
+                    self.results.append(FailedCheck(self.description, f"`{device_name}` can reach `{destination}`."))
                 else:
-                    return SuccessfulCheck(self.description)
+                    self.results.append(SuccessfulCheck(self.description))
             else:
                 if invert:
-                    return SuccessfulCheck(self.description)
+                    self.results.append(SuccessfulCheck(self.description))
                 else:
-                    return FailedCheck(self.description,
-                                       f"`{device_name}` does not receive any answer from `{destination}`.")
+                    self.results.append(FailedCheck(self.description,
+                                       f"`{device_name}` does not receive any answer from `{destination}`."))
         except Exception:
-            return CheckResult(self.description, invert ^ False, output.strip())
+            self.results.append(CheckResult(self.description, invert ^ False, output.strip()))
 
-    def run(self, devices_to_destinations: dict[str, list[str]]) -> list[CheckResult]:
-        results = []
+    def run(self, devices_to_destinations: dict[str, list[str]]):
         for device_name, destinations in devices_to_destinations.items():
             for destination in destinations:
-                check_result = self.check(device_name, destination)
-                results.append(check_result)
-        return results
+                self.check_with_timeout(device_name, destination)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "reachability"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "reachability"], self.configuration):
             self.logger.info(f"Starting reachability test...")
-            results.extend(self.run(configuration["test"]["reachability"]))
-        return results
+            self.run(self.configuration["test"]["reachability"])

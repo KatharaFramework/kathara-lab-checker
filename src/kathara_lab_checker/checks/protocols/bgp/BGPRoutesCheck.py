@@ -4,7 +4,6 @@ from collections import Counter
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....foundation.model.CheckResult import CheckResult
 from ....model.FailedCheck import FailedCheck
 from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
@@ -12,12 +11,10 @@ from ....utils import key_exists
 
 class BGPRoutesCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=1020)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=1020)
 
-    def check(self, device_name: str, networks: list) -> list[CheckResult]:
-        results = []
-
+    def check(self, device_name: str, networks: list):
         self.description = f"Check BGP routes for {device_name}"
 
         try:
@@ -25,36 +22,36 @@ class BGPRoutesCheck(AbstractCheck):
                 machine_name=device_name, command=f"vtysh -e 'show ip bgp json'", lab_hash=self.lab.hash, stream=False
             )
         except Exception as e:
-            results.append(FailedCheck(self.description, str(e)))
-            return results
+            self.results.append(FailedCheck(self.description, str(e)))
+            return
 
         output = stdout.decode("utf-8") if stdout else None
 
         if stderr or exit_code != 0:
-            results.append(
+            self.results.append(
                 FailedCheck(
                     self.description,
                     stderr.decode("utf-8").strip() if stderr else f"Exit code: {exit_code}",
                 )
             )
-            return results
+            return
 
         output = json.loads(output)
 
         if not "routes" in output:
-            results.append(
+            self.results.append(
                 FailedCheck(
                     self.description,
                     f"BGP routes not found in {device_name}",
                 )
             )
-            return results
+            return
 
         router_routes = output["routes"]
 
         for network in networks:
             if network["route"] not in router_routes:
-                results.append(
+                self.results.append(
                     FailedCheck(self.description,
                                 f"Network {network['route']} is not in BGP routing table.")
                 )
@@ -63,7 +60,7 @@ class BGPRoutesCheck(AbstractCheck):
             router_route = router_routes[network["route"]]
 
             if len(router_route) != len(network["aspath"]):
-                results.append(
+                self.results.append(
                     FailedCheck(
                         self.description,
                         f"BGP network {network['route']} has a different number of alternatives. Expected: {len(network['aspath'])} Actual: {len(router_route)}",
@@ -81,28 +78,21 @@ class BGPRoutesCheck(AbstractCheck):
             dict_count = {key: value for key, value in dict_count if value != 0}
 
             if not dict_count:
-                results.append(SuccessfulCheck(self.description))
+                self.results.append(SuccessfulCheck(self.description))
             else:
-                results.append(
+                self.results.append(
                     FailedCheck(
                         self.description,
                         f"BGP network {network['route']} have not correct AS Paths (supposed-actual): {dict_count}",
                     )
                 )
 
-        return results
-
-    def run(self, devices_to_networks: dict[str, list[str]]) -> list[CheckResult]:
-        results = []
+    def run(self, devices_to_networks: dict[str, list[str]]):
         for device_name, networks in devices_to_networks.items():
             self.logger.info(f"Checking {device_name} BGP routes...")
-            check_result = self.check(device_name, networks)
-            results.extend(check_result)
-        return results
+            self.check_with_timeout(device_name, networks)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "protocols", "bgpd", "routes"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "protocols", "bgpd", "routes"], self.configuration):
             self.logger.info("Checking BGP routes...")
-            results.extend(self.run(configuration["test"]["protocols"]['bgpd']['routes']))
-        return results
+            self.run(self.configuration["test"]["protocols"]['bgpd']['routes'])

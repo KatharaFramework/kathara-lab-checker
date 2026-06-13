@@ -1,5 +1,9 @@
 {
 	"convergence_time": 10,
+	"default_timeout": 10,
+	"timeouts": {
+		"ReachabilityCheck": 2
+	},
 	"structure": "structure",
 	"default_image": "kathara/frr",
 	"test": {

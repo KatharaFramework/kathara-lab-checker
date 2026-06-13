@@ -2,7 +2,6 @@ from Kathara.exceptions import MachineNotFoundError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..foundation.model.CheckResult import CheckResult
 from ..model.FailedCheck import FailedCheck
 from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import get_output, key_exists
@@ -10,10 +9,10 @@ from ..utils import get_output, key_exists
 
 class DaemonCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=80)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=80)
 
-    def check(self, device_name: str, daemon: str) -> CheckResult:
+    def check(self, device_name: str, daemon: str):
 
         if daemon.startswith("!"):
             daemon = daemon[1:]
@@ -29,25 +28,20 @@ class DaemonCheck(AbstractCheck):
                 self.kathara_manager.exec(machine_name=device.name, lab_hash=self.lab.hash, command=f"pgrep {daemon}")
             )
             if (output != "") ^ invert:
-                return SuccessfulCheck(self.description)
+                self.results.append(SuccessfulCheck(self.description))
             else:
                 reason = f"Daemon {daemon} is {'' if invert else 'not '}running on device `{device_name}`"
-                return FailedCheck(self.description, reason)
+                self.results.append(FailedCheck(self.description, reason))
         except MachineNotFoundError as e:
-            return FailedCheck(self.description, str(e))
+            self.results.append(FailedCheck(self.description, str(e)))
 
-    def run(self, devices_to_daemons: dict[str, list[str]]) -> list[CheckResult]:
-        results = []
+    def run(self, devices_to_daemons: dict[str, list[str]]):
         for device_name, daemons in devices_to_daemons.items():
             self.logger.info(f"Checking running daemons on `{device_name}`...")
             for daemon_name in daemons:
-                check_result = self.check(device_name, daemon_name)
-                results.append(check_result)
-        return results
+                self.check_with_timeout(device_name, daemon_name)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "daemons"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "daemons"], self.configuration):
             self.logger.info(f"Checking running daemons...")
-            results.extend(self.run(configuration["test"]["daemons"]))
-        return results
+            self.run(self.configuration["test"]["daemons"])

@@ -7,7 +7,7 @@ from .AbstractCheck import AbstractCheck
 
 class CheckFactory:
     @staticmethod
-    def instantiate_classes_from_package_name(package_name, lab) -> list[AbstractCheck]:
+    def instantiate_classes_from_package_name(package_name, lab, configuration) -> list[AbstractCheck]:
         instances = []
         package = importlib.import_module(package_name)
 
@@ -22,7 +22,7 @@ class CheckFactory:
                     for name, obj in inspect.getmembers(module, inspect.isclass):
                         if obj.__module__ == module.__name__:
                             try:
-                                instances.append(obj(lab))
+                                instances.append(obj(lab, configuration))
                             except TypeError as e:
                                 print(f"Skipping {obj.__name__}: {e}")
 

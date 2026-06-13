@@ -3,7 +3,6 @@ import re
 from Kathara.model.Lab import Lab
 
 from ...foundation.checks.AbstractCheck import AbstractCheck
-from ...foundation.model.CheckResult import CheckResult
 from ...model.FailedCheck import FailedCheck
 from ...model.SuccessfulCheck import SuccessfulCheck
 from ...utils import get_output, key_exists
@@ -11,10 +10,10 @@ from ...utils import get_output, key_exists
 
 class AnnouncedNetworkCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=1110)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=1110)
 
-    def check(self, device_name: str, protocol: str, network: str) -> CheckResult:
+    def check(self, device_name: str, protocol: str, network: str):
         self.description = f"Check {protocol} network ({network}) for {device_name}"
 
         try:
@@ -22,29 +21,26 @@ class AnnouncedNetworkCheck(AbstractCheck):
                 machine_name=device_name, command=f"vtysh -e 'show running-config {protocol}'", lab_hash=self.lab.hash
             )
         except Exception as e:
-            return FailedCheck(self.description, str(e))
+            self.results.append(FailedCheck(self.description, str(e)))
+            return
 
         output = list(filter(lambda x: "network" in x, get_output(exec_output_gen).split("\n")))
         for line in output:
             if re.search(rf"\s*network\s*{network}", line):
-                return SuccessfulCheck(self.description)
+                self.results.append(SuccessfulCheck(self.description))
+                return
         reason = f"Network {network} is not announced in {protocol}."
-        return FailedCheck(self.description, reason)
+        self.results.append(FailedCheck(self.description, reason))
 
-    def run(self, protocol: str, devices_to_networks: dict[str, list[str]]) -> list[CheckResult]:
-        results = []
+    def run(self, protocol: str, devices_to_networks: dict[str, list[str]]):
         for device_name, networks in devices_to_networks.items():
             self.logger.info(f"Checking {device_name} {protocol} announces...")
             for network in networks:
-                check_result = self.check(device_name, protocol, network)
-                results.append(check_result)
-        return results
+                self.check_with_timeout(device_name, protocol, network)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "protocols"], configuration):
-            for daemon_name in configuration["test"]["protocols"]:
-                if key_exists(["test", "protocols", daemon_name, "networks"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "protocols"], self.configuration):
+            for daemon_name in self.configuration["test"]["protocols"]:
+                if key_exists(["test", "protocols", daemon_name, "networks"], self.configuration):
                     self.logger.info(f"Checking announced networks for {daemon_name}...")
-                    results.extend(self.run(daemon_name, configuration["test"]["protocols"][daemon_name]["networks"]))
-        return results
+                    self.run(daemon_name, self.configuration["test"]["protocols"][daemon_name]["networks"])

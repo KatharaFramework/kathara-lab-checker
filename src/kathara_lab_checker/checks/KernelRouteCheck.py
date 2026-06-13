@@ -6,7 +6,6 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..foundation.model.CheckResult import CheckResult
 from ..model.FailedCheck import FailedCheck
 from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import key_exists
@@ -32,10 +31,11 @@ def is_valid_ip(ip_str):
 
 class KernelRouteCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=2000)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=2000)
 
-    def check(self, device_name: str, expected_routing_table: list) -> list[CheckResult]:
+    def check(self, device_name: str, expected_routing_table: list):
+        _results_start = len(self.results)
         self.description = f"Checking the routing table of {device_name}"
         actual_routing_table = dict(
             filter(
@@ -45,30 +45,25 @@ class KernelRouteCheck(AbstractCheck):
         )
         expected_routing_table = load_routes_from_expected(expected_routing_table)
 
-        results = []
-
         if len(expected_routing_table) != len(actual_routing_table):
-            check_result = FailedCheck(
+            self.results.append(FailedCheck(
                 self.description,
                 f"The routing table of {device_name} have the wrong number of routes: {len(actual_routing_table)}, expected: {len(expected_routing_table)}",
-            )
-            results.append(check_result)
+            ))
 
         for dst, nexthops in expected_routing_table.items():
             if not dst in actual_routing_table:
-                check_result = FailedCheck(
+                self.results.append(FailedCheck(
                     self.description, f"The routing table of {device_name} is missing route {dst}"
-                )
-                results.append(check_result)
+                ))
                 continue
             if nexthops:
                 actual_nh = actual_routing_table[dst]
                 if len(nexthops) != len(actual_nh):
-                    check_result = FailedCheck(
+                    self.results.append(FailedCheck(
                         self.description,
                         f"The routing table of {device_name} about route {dst} have the wrong number of next-hops: {len(actual_nh)}, expected: {len(nexthops)}",
-                    )
-                    results.append(check_result)
+                    ))
                     continue
 
                 # nexthops and actual_nh could be a set of IPs or a set of interfaces or a mixed set
@@ -77,37 +72,21 @@ class KernelRouteCheck(AbstractCheck):
                     if (valid_ip and not any(item[0] == nh for item in actual_nh)) or (
                             not valid_ip and not any(item[1] == nh for item in actual_nh)
                     ):
-                        check_result = FailedCheck(
+                        self.results.append(FailedCheck(
                             self.description,
                             f"The routing table of {device_name} about route {dst} does not contain next-hop: {nh}, actual: {actual_nh}",
-                        )
-                        results.append(check_result)
+                        ))
 
         for dst, nexthops in actual_routing_table.items():
             if not dst in expected_routing_table.keys():
-                check_result = FailedCheck(
+                self.results.append(FailedCheck(
                     self.description,
                     f"The routing table of {device_name} contains route {dst} that should not be there",
-                )
-                results.append(check_result)
+                ))
                 continue
 
-        if not results:
-            check_result = SuccessfulCheck(self.description)
-            results.append(check_result)
-
-        return results
-
-    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]]) -> list[CheckResult]:
-        results = []
-        for device_name, expected_routes in devices_to_routes.items():
-            self.logger.info(f"Checking kernel routes for `{device_name}`...")
-            try:
-                check_result = self.check(device_name, expected_routes)
-                results = results + check_result
-            except MachineNotRunningError:
-                self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
-        return results
+        if not any(not r.passed for r in self.results[_results_start:]):
+            self.results.append(SuccessfulCheck(self.description))
 
     def get_kernel_routes(self, device_name: str) -> list[dict[str, Any]]:
         try:
@@ -171,9 +150,15 @@ class KernelRouteCheck(AbstractCheck):
             routes[dst] = set(nexthops)
         return routes
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "kernel_routes"], configuration):
+    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]]):
+        for device_name, expected_routes in devices_to_routes.items():
+            self.logger.info(f"Checking kernel routes for `{device_name}`...")
+            try:
+                self.check_with_timeout(device_name, expected_routes)
+            except MachineNotRunningError:
+                self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
+
+    def run_from_configuration(self):
+        if key_exists(["test", "kernel_routes"], self.configuration):
             self.logger.info("Checking Routing Tables...")
-            results.extend(self.run(configuration["test"]["kernel_routes"]))
-        return results
+            self.run(self.configuration["test"]["kernel_routes"])

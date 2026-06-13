@@ -3,9 +3,9 @@ from typing import Any
 
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
+from ..foundation.model import CheckResult
 
 from ..foundation.checks.AbstractCheck import AbstractCheck
-from ..foundation.model.CheckResult import CheckResult
 from ..model.FailedCheck import FailedCheck
 from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import get_output, key_exists
@@ -32,12 +32,12 @@ def get_inteface_by_vni(interface_vni: str, interfaces: list[dict]):
 
 class BridgeCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=60)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=60)
 
     def check_bridge_interfaces(
             self, device_name: str, expected_interfaces: list[str], actual_interfaces: list[dict]
-    ) -> (CheckResult, set[str]):
+    ) -> CheckResult:
         self.description = (
             f"Checking that interfaces {expected_interfaces} " f"are attached to the same bridge on `{device_name}`"
         )
@@ -161,9 +161,7 @@ class BridgeCheck(AbstractCheck):
             reason = f"No pvid configured on `{interface_name}` of `{device_name}`"
             return FailedCheck(self.description, reason)
 
-    def run(self, devices_to_bridge_configuration: dict[str, Any]) -> list[CheckResult]:
-        results = []
-
+    def run(self, devices_to_bridge_configuration: dict[str, Any]):
         for device_name, bridges_configuration in devices_to_bridge_configuration.items():
             self.logger.info(f"Checking bridges configuration on `{device_name}`...")
             try:
@@ -182,7 +180,8 @@ class BridgeCheck(AbstractCheck):
                     )
                 )
             except MachineNotRunningError as e:
-                return [FailedCheck(self.description, str(e))]
+                self.results.append(FailedCheck(self.description, str(e)))
+                return
 
             actual_interfaces = json.loads(ip_link_output)
 
@@ -205,13 +204,13 @@ class BridgeCheck(AbstractCheck):
                 check_result, masters = self.check_bridge_interfaces(
                     device_name, expected_bridge_interfaces, actual_interfaces
                 )
-                results.append(check_result)
+                self.results.append(check_result)
 
                 if check_result.passed:
                     check_result = self.check_vlan_filtering(
                         device_name, get_interface_by_name(masters.pop(), actual_interfaces)
                     )
-                    results.append(check_result)
+                    self.results.append(check_result)
 
                     for interface_name, interface_conf in bridge_conf["interfaces"].items():
                         description = f"Getting VLAN info for `{interface_name}` on `{device_name}`"
@@ -219,20 +218,20 @@ class BridgeCheck(AbstractCheck):
                         try:
                             actual_interface_vlans = get_interface_by_name(interface_name, actual_vlans)
                             check_result = SuccessfulCheck(description)
-                            results.append(check_result)
+                            self.results.append(check_result)
                         except IndexError:
                             check_result = FailedCheck(
                                 description,
                                 f"No VLAN found for for `{interface_name}` on `{device_name}`",
                             )
-                            results.append(check_result)
+                            self.results.append(check_result)
 
                         if actual_interface_vlans:
                             if "vlan_tags" in interface_conf:
                                 check_result = self.check_vlan_tags(
                                     device_name, interface_name, interface_conf, actual_interface_vlans
                                 )
-                                results.append(check_result)
+                                self.results.append(check_result)
 
                             if "pvid" in interface_conf:
                                 check_result = self.check_vlan_pvid(
@@ -241,19 +240,18 @@ class BridgeCheck(AbstractCheck):
                                     interface_conf["pvid"],
                                     actual_interface_vlans,
                                 )
-                                results.append(check_result)
+                                self.results.append(check_result)
 
                     if "vxlan" in bridge_conf:
                         for vni, vni_info in bridge_conf["vxlan"].items():
                             check_result = self.check_vxlan_pvid(
                                 device_name, vni, vni_info["pvid"], actual_interfaces, actual_vlans
                             )
-                            results.append(check_result)
-        return results
-
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        if key_exists(["test", "bridges"], configuration):
+                            self.results.append(check_result)
+        
+    def run_from_configuration(self):
+        if key_exists(["test", "bridges"], self.configuration):
             self.logger.info("Verifying bridges configuration inside devices...")
-            return self.run(configuration["test"]["bridges"])
+            self.run(self.configuration["test"]["bridges"])
         else:
-            return []
+            self.logger.info("No bridges configuration found to be verified.")

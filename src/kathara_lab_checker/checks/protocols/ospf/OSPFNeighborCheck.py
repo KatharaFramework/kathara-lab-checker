@@ -4,7 +4,6 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....foundation.model.CheckResult import CheckResult
 from ....model.FailedCheck import FailedCheck
 from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
@@ -12,11 +11,10 @@ from ....utils import key_exists
 
 class OSPFNeighborCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=1060)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=1060)
 
-    def check(self, device_name: str, expected_neighbors: list[dict]) -> list[CheckResult]:
-        results = []
+    def check(self, device_name: str, expected_neighbors: list[dict]):
         self.description = f"Checking OSPF neighbors on {device_name}"
         try:
             stdout, stderr, exit_code = self.kathara_manager.exec(
@@ -26,15 +24,18 @@ class OSPFNeighborCheck(AbstractCheck):
                 stream=False
             )
         except MachineNotRunningError as e:
-            return [FailedCheck(self.description, str(e))]
+            self.results.append(FailedCheck(self.description, str(e)))
+            return
         output = stdout.decode("utf-8") if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
-            return [FailedCheck(self.description, err_msg)]
+            self.results.append(FailedCheck(self.description, err_msg))
+            return
         try:
             data = json.loads(output)
         except Exception as e:
-            return [FailedCheck(self.description, f"JSON parse error: {str(e)}")]
+            self.results.append(FailedCheck(self.description, f"JSON parse error: {str(e)}"))
+            return
 
         # Expect data to be a dict with a "neighbors" key that is also a dict.
         if isinstance(data, dict) and "neighbors" in data:
@@ -49,7 +50,7 @@ class OSPFNeighborCheck(AbstractCheck):
             expected_state = expected.get("state", "FULL").upper()
             check_desc = f"OSPF neighbor {expected_id} on {device_name}"
             if expected_id not in neighbors_data:
-                results.append(FailedCheck(check_desc, f"Neighbor with router_id {expected_id} not found"))
+                self.results.append(FailedCheck(check_desc, f"Neighbor with router_id {expected_id} not found"))
                 continue
             # Get the list of neighbor info objects.
             neighbor_entries = neighbors_data[expected_id]
@@ -58,24 +59,19 @@ class OSPFNeighborCheck(AbstractCheck):
                 # Use the "converged" field as the operational state.
                 actual_state = entry.get("converged", "").upper()
                 if actual_state == expected_state:
-                    results.append(SuccessfulCheck(check_desc, "OK"))
+                    self.results.append(SuccessfulCheck(check_desc, "OK"))
                     matched = True
                     break
             if not matched:
                 first_state = neighbor_entries[0].get("converged", "UNKNOWN")
-                results.append(FailedCheck(check_desc, f"State is {first_state}, expected {expected_state}"))
-        return results
+                self.results.append(FailedCheck(check_desc, f"State is {first_state}, expected {expected_state}"))
 
-    def run(self, device_to_neighbors: dict[str, list[dict]]) -> list[CheckResult]:
-        results = []
+    def run(self, device_to_neighbors: dict[str, list[dict]]):
         for device_name, neighbors in device_to_neighbors.items():
             self.logger.info(f"Checking OSPF neighbors for {device_name}...")
-            results.extend(self.check(device_name, neighbors))
-        return results
+            self.check_with_timeout(device_name, neighbors)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "protocols", "ospfd", "neighbors"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "protocols", "ospfd", "neighbors"], self.configuration):
             self.logger.info("Checking OSPF neighbors...")
-            results.extend(self.run(configuration["test"]["protocols"]['ospfd']['neighbors']))
-        return results
+            self.run(self.configuration["test"]["protocols"]['ospfd']['neighbors'])

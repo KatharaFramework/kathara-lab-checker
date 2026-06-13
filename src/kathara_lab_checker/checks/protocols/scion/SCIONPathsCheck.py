@@ -4,7 +4,6 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....foundation.model.CheckResult import CheckResult
 from ....model.FailedCheck import FailedCheck
 from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import key_exists
@@ -12,8 +11,8 @@ from ....utils import key_exists
 
 class SCIONPathsCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=1100)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=1100)
 
     def format_path(self, path: dict) -> str:
         """
@@ -57,13 +56,12 @@ class SCIONPathsCheck(AbstractCheck):
 
         return formatted
 
-    def check(self, device_name: str, destination: str, expected_paths: list[str]) -> list[CheckResult]:
+    def check(self, device_name: str, destination: str, expected_paths: list[str]):
         """
         Runs 'scion showpaths <destination> --format json' and checks that each 
         path in expected_paths is present in the returned list of actual paths.
         """
         desc_base = f"SCION paths from {device_name} to {destination}"
-        results = []
 
         try:
             cmd = f"scion showpaths {destination} --refresh --format json"
@@ -74,17 +72,20 @@ class SCIONPathsCheck(AbstractCheck):
                 stream=False
             )
         except MachineNotRunningError as e:
-            return [FailedCheck(desc_base, str(e))]
+            self.results.append(FailedCheck(desc_base, str(e)))
+            return
 
         raw_output = stdout.decode("utf-8").strip() if stdout else ""
         if stderr or exit_code != 0:
             err_msg = stderr.decode("utf-8") if stderr else f"Exit code: {exit_code}"
-            return [FailedCheck(desc_base, err_msg)]
+            self.results.append(FailedCheck(desc_base, err_msg))
+            return
 
         try:
             data = json.loads(raw_output)
         except Exception as e:
-            return [FailedCheck(desc_base, f"JSON parse error: {str(e)}")]
+            self.results.append(FailedCheck(desc_base, f"JSON parse error: {str(e)}"))
+            return
 
         actual_paths = set()
         for path_obj in data.get("paths", []):
@@ -96,12 +97,11 @@ class SCIONPathsCheck(AbstractCheck):
         for exp_path in expected_paths:
             desc = f"{desc_base}: '{exp_path}'"
             if exp_path in actual_paths:
-                results.append(SuccessfulCheck(desc))
+                self.results.append(SuccessfulCheck(desc))
             else:
-                results.append(FailedCheck(desc, f"Path '{exp_path}' not found"))
-        return results
+                self.results.append(FailedCheck(desc, f"Path '{exp_path}' not found"))
 
-    def run(self, device_destinations: dict[str, dict[str, list[str]]]) -> list[CheckResult]:
+    def run(self, device_destinations: dict[str, dict[str, list[str]]]):
         """
         device_destinations = {
           "device_name": {
@@ -115,16 +115,12 @@ class SCIONPathsCheck(AbstractCheck):
         For each device, we loop over all destinations, run 'check(device, destination, expectedPaths)'
         for each, and aggregate results.
         """
-        all_results = []
         for device_name, destinations in device_destinations.items():
             self.logger.info(f"Checking SCION showpaths for {device_name}...")
             for dest, exp_paths in destinations.items():
-                all_results.extend(self.check(device_name, dest, exp_paths))
-        return all_results
+                self.check_with_timeout(device_name, dest, exp_paths)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "protocols", "sciond", "paths"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "protocols", "sciond", "paths"], self.configuration):
             self.logger.info("Checking SCION paths...")
-            results.extend(self.run(configuration["test"]["protocols"]['sciond']['paths']))
-        return results
+            self.run(self.configuration["test"]["protocols"]['sciond']['paths'])

@@ -5,7 +5,6 @@ from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
-from ....foundation.model.CheckResult import CheckResult
 from ....model.FailedCheck import FailedCheck
 from ....model.SuccessfulCheck import SuccessfulCheck
 from ....utils import get_output, find_lines_with_string, find_device_name_from_ip, key_exists
@@ -13,10 +12,10 @@ from ....utils import get_output, find_lines_with_string, find_device_name_from_
 
 class DNSAuthorityCheck(AbstractCheck):
 
-    def __init__(self, lab: Lab, description: str = None):
-        super().__init__(lab, description=description, priority=3010)
+    def __init__(self, lab: Lab, configuration: dict, description: str = None):
+        super().__init__(lab, configuration, description=description, priority=3010)
 
-    def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str) -> CheckResult:
+    def check(self, domain: str, authority_ip: str, device_name: str, device_ip: str):
         self.description = f"Checking on `{device_name}` that `{authority_ip}` is the authority for domain `{domain}`"
 
         try:
@@ -24,11 +23,13 @@ class DNSAuthorityCheck(AbstractCheck):
                 machine_name=device_name, command=f"dig NS {domain} @{device_ip}", lab_hash=self.lab.hash
             )
         except MachineNotRunningError as e:
-            return FailedCheck(self.description, str(e))
+            self.results.append(FailedCheck(self.description, str(e)))
+            return
 
         output = get_output(exec_output_gen)
         if output.startswith("ERROR:"):
-            return FailedCheck(self.description, output)
+            self.results.append(FailedCheck(self.description, output))
+            return
 
         result = jc.parse("dig", output)
         if result:
@@ -46,17 +47,18 @@ class DNSAuthorityCheck(AbstractCheck):
                     ip = stdout.decode("utf-8").strip() if stdout else (
                         stderr.decode("utf-8").strip() if stderr else "")
                     if authority_ip == ip:
-                        return SuccessfulCheck(self.description)
+                        self.results.append(SuccessfulCheck(self.description))
+                        return
                     else:
                         authority_ips.append(ip)
                 reason = f"The dns authorities for domain `{domain}` have the following IPs {authority_ips}"
-                return FailedCheck(self.description, reason)
+                self.results.append(FailedCheck(self.description, reason))
             else:
                 reason = (
                     f"named on {device_name} is running but answered "
                     f"with {result['status']} when quering for {domain}"
                 )
-                return FailedCheck(self.description, reason)
+                self.results.append(FailedCheck(self.description, reason))
         else:
             if self.lab.fs.exists(f"{device_name}.startup"):
                 with self.lab.fs.open(f"{device_name}.startup", "r") as startup_file:
@@ -84,51 +86,44 @@ class DNSAuthorityCheck(AbstractCheck):
                         reason_list_no_dates = [re.sub(date_pattern, "", line) for line in reason_list]
                         reason = "\n".join(reason_list_no_dates)
 
-                        return FailedCheck(self.description, "Configuration Error:\n" + reason)
+                        self.results.append(FailedCheck(self.description, "Configuration Error:\n" + reason))
+                        return
 
                 reason = f"named not started in `{device_name}`.startup`"
-                return FailedCheck(self.description, reason)
+                self.results.append(FailedCheck(self.description, reason))
             else:
                 reason = f"There is no `.startup` file for device `{device_name}`"
-                return FailedCheck(self.description, reason)
+                self.results.append(FailedCheck(self.description, reason))
 
     def run(
             self,
             zone_to_authoritative_ips: dict[str, list[str]],
             local_nameservers: list[str],
             ip_mapping: dict[str, dict[str, str]],
-    ) -> list[CheckResult]:
-        results = []
+    ):
         for domain, name_servers in zone_to_authoritative_ips.items():
             self.logger.info(f"Checking authority ip for domain `{domain}`")
             for ns in name_servers:
-                check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns)
-                results.append(check_result)
+                self.check_with_timeout(domain, ns, find_device_name_from_ip(ip_mapping, ns), ns)
 
                 if domain == ".":
                     self.logger.info(
                         f"Checking if all the named servers can correctly resolve {ns} as the root nameserver..."
                     )
                     for generic_ns_ip in name_servers:
-                        check_result = self.check(
+                        self.check_with_timeout(
                             domain, ns, find_device_name_from_ip(ip_mapping, generic_ns_ip), generic_ns_ip
                         )
-                        results.append(check_result)
 
                     for local_ns in local_nameservers:
-                        check_result = self.check(domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns)
-                        results.append(check_result)
-        return results
+                        self.check_with_timeout(domain, ns, find_device_name_from_ip(ip_mapping, local_ns), local_ns)
 
-    def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
-        results = []
-        if key_exists(["test", "applications", "dns", "authoritative"], configuration) and \
-                key_exists(["test", "applications", "dns", "local_ns"], configuration) and \
-                key_exists(["test", "ip_mapping"], configuration):
+    def run_from_configuration(self):
+        if key_exists(["test", "applications", "dns", "authoritative"], self.configuration) and \
+                key_exists(["test", "applications", "dns", "local_ns"], self.configuration) and \
+                key_exists(["test", "ip_mapping"], self.configuration):
             self.logger.info("Checking DNS authorities...")
-            results.extend(self.run(configuration["test"]["applications"]["dns"]["authoritative"],
-                                    configuration["test"]["applications"]["dns"]["local_ns"].keys(),
-                                    configuration["test"]["ip_mapping"]
-                                    )
-                           )
-        return results
+            self.run(self.configuration["test"]["applications"]["dns"]["authoritative"],
+                     self.configuration["test"]["applications"]["dns"]["local_ns"].keys(),
+                     self.configuration["test"]["ip_mapping"]
+                     )
