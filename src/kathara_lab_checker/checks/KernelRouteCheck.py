@@ -1,6 +1,6 @@
 import ipaddress
 import json
-from typing import Union, Any
+from typing import Any
 
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
@@ -12,14 +12,11 @@ from ..model.SuccessfulCheck import SuccessfulCheck
 from ..utils import key_exists
 
 
-def load_routes_from_expected(expected_routes: list) -> dict[str, set]:
-    routes = {}
-    for route in expected_routes:
-        if type(route) is list:
-            routes[route[0]] = set(route[1])
-        else:
-            routes[route] = set()
-    return routes
+def load_routes_from_expected(expected_routes: dict[str, dict]) -> dict[str, dict[str, Any]]:
+    return {
+        dst: {"nexthops": set(route.get("nexthops", [])), "protocol": route.get("protocol")}
+        for dst, route in expected_routes.items()
+    }
 
 
 def is_valid_ip(ip_str):
@@ -35,11 +32,11 @@ class KernelRouteCheck(AbstractCheck):
     def __init__(self, lab: Lab, description: str = None):
         super().__init__(lab, description=description, priority=2000)
 
-    def check(self, device_name: str, expected_routing_table: list) -> list[CheckResult]:
+    def check(self, device_name: str, expected_routing_table: dict[str, dict]) -> list[CheckResult]:
         self.description = f"Checking the routing table of {device_name}"
         actual_routing_table = dict(
             filter(
-                lambda item: not any("d.c." in elem for elem in item[1]),
+                lambda item: not any("d.c." in elem for elem in item[1]["nexthops"]),
                 self.load_routes_from_device(device_name).items(),
             )
         )
@@ -54,15 +51,24 @@ class KernelRouteCheck(AbstractCheck):
             )
             results.append(check_result)
 
-        for dst, nexthops in expected_routing_table.items():
+        for dst, expected_route in expected_routing_table.items():
             if not dst in actual_routing_table:
                 check_result = FailedCheck(
                     self.description, f"The routing table of {device_name} is missing route {dst}"
                 )
                 results.append(check_result)
                 continue
+            protocol = expected_route["protocol"]
+            actual_protocol = actual_routing_table[dst]["protocol"]
+            if protocol and protocol != actual_protocol:
+                check_result = FailedCheck(
+                    self.description,
+                    f"The routing table of {device_name} about route {dst} has the wrong protocol: {actual_protocol}, expected: {protocol}",
+                )
+                results.append(check_result)
+            nexthops = expected_route["nexthops"]
             if nexthops:
-                actual_nh = actual_routing_table[dst]
+                actual_nh = actual_routing_table[dst]["nexthops"]
                 if len(nexthops) != len(actual_nh):
                     check_result = FailedCheck(
                         self.description,
@@ -83,7 +89,7 @@ class KernelRouteCheck(AbstractCheck):
                         )
                         results.append(check_result)
 
-        for dst, nexthops in actual_routing_table.items():
+        for dst in actual_routing_table.keys():
             if not dst in expected_routing_table.keys():
                 check_result = FailedCheck(
                     self.description,
@@ -98,7 +104,7 @@ class KernelRouteCheck(AbstractCheck):
 
         return results
 
-    def run(self, devices_to_routes: dict[str, list[Union[str, list[str]]]]) -> list[CheckResult]:
+    def run(self, devices_to_routes: dict[str, dict[str, dict]]) -> list[CheckResult]:
         results = []
         for device_name, expected_routes in devices_to_routes.items():
             self.logger.info(f"Checking kernel routes for `{device_name}`...")
@@ -131,7 +137,7 @@ class KernelRouteCheck(AbstractCheck):
 
         return json.loads(stdout)
 
-    def load_routes_from_device(self, device_name: str) -> dict[str, set]:
+    def load_routes_from_device(self, device_name: str) -> dict[str, dict[str, Any]]:
         ip_route_output = self.get_kernel_routes(device_name)
         routes = {}
         kernel_nexthops = None
@@ -168,7 +174,7 @@ class KernelRouteCheck(AbstractCheck):
                     ]
                 else:
                     raise Exception("Strange nexthop: ", current_nexthop)
-            routes[dst] = set(nexthops)
+            routes[dst] = {"nexthops": set(nexthops), "protocol": route.get("protocol")}
         return routes
 
     def run_from_configuration(self, configuration: dict) -> list[CheckResult]:

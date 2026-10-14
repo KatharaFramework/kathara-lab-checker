@@ -63,23 +63,23 @@
         "daemons": {"$ref": "#/$defs/deviceToStringList"},
         "reachability": {"$ref": "#/$defs/deviceToStringList"},
         "kernel_routes": {
+          "description": "device -> route -> expected route attributes",
           "type": "object",
           "additionalProperties": {
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {"$ref": "#/$defs/nonEmptyString"},
-                {
-                  "description": "[<route>, [<nexthop ip or interface>, ...]]",
-                  "type": "array",
-                  "prefixItems": [
-                    {"$ref": "#/$defs/nonEmptyString"},
-                    {"$ref": "#/$defs/stringList"}
-                  ],
-                  "minItems": 2,
-                  "maxItems": 2
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "nexthops": {
+                  "description": "List of nexthop IPs or interface names",
+                  "$ref": "#/$defs/stringList"
+                },
+                "protocol": {
+                  "description": "Protocol that installed the route, as reported by `ip route` (e.g., kernel, static, ospf, bgp)",
+                  "$ref": "#/$defs/nonEmptyString"
                 }
-              ]
+              },
+              "additionalProperties": false
             }
           }
         },

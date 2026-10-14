@@ -108,11 +108,13 @@ or values of the wrong type are reported and the run is aborted.
     },
     # checks that the expected routing table is equal to the the actual table of a device
     "kernel_routes": { 
-      "<device_name>": [
-        "<route>", # Check the presence of the route in the data-plane of the device
-        "[<route>, [<iface_name_1>, <iface_name_2>, <next_hop_1>]]" # Check the presence of the route in the data-plane of the device
-                                                      # And checks also that the nexthops are set on the correct interfaces
-      ]
+      "<device_name>": {
+        "<route>": {}, # Check the presence of the route in the data-plane of the device
+        "<route>": {
+          "nexthops": [<iface_name_1>, <iface_name_2>, <next_hop_1>], # (Optional) Check that the nexthops are set on the correct interfaces
+          "protocol": "<protocol>" # (Optional) Check the protocol that installed the route (e.g., kernel, static, ospf, bgp)
+        }
+      }
     },
     "protocols": { # Checks on routing protocols
       "bgpd": { # Specific checks for BGP
