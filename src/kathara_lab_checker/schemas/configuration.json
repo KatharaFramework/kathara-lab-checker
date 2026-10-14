@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KatharaFramework/kathara-lab-checker/configuration.json",
+  "title": "kathara-lab-checker configuration",
+  "type": "object",
+  "properties": {
+    "labs_path": {"type": "string"},
+    "convergence_time": {"type": "number", "minimum": 0},
+    "structure": {"type": "string", "minLength": 1},
+    "lab_inline": {"type": "string", "minLength": 1},
+    "default_image": {"type": "string", "minLength": 1},
+    "test": {"$ref": "#/$defs/test"}
+  },
+  "required": ["convergence_time", "default_image"],
+  "anyOf": [
+    {"required": ["structure"]},
+    {"required": ["lab_inline"]}
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "stringList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"}
+    },
+    "deviceList": {
+      "description": "List of device names. A leading `!` negates the check.",
+      "type": "array",
+      "items": {"type": "string", "pattern": "^!?[^!\\s]+$"}
+    },
+    "deviceToStringList": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/stringList"}
+    },
+    "test": {
+      "type": "object",
+      "properties": {
+        "requiring_startup": {"$ref": "#/$defs/deviceList"},
+        "requiring_folder": {"$ref": "#/$defs/deviceList"},
+        "ipv6_enabled": {"$ref": "#/$defs/stringList"},
+        "sysctls": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[^=\\s]+=-?\\d+$"}
+          }
+        },
+        "ip_mapping": {
+          "description": "device -> interface name (or eth number) -> ip/prefix",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"type": "string", "pattern": "^[0-9a-fA-F:.]+/\\d{1,3}$"}
+          }
+        },
+        "bridges": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/bridge"}
+          }
+        },
+        "daemons": {"$ref": "#/$defs/deviceToStringList"},
+        "reachability": {"$ref": "#/$defs/deviceToStringList"},
+        "kernel_routes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/nonEmptyString"},
+                {
+                  "description": "[<route>, [<nexthop ip or interface>, ...]]",
+                  "type": "array",
+                  "prefixItems": [
+                    {"$ref": "#/$defs/nonEmptyString"},
+                    {"$ref": "#/$defs/stringList"}
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              ]
+            }
+          }
+        },
+        "protocols": {"$ref": "#/$defs/protocols"},
+        "applications": {"$ref": "#/$defs/applications"},
+        "custom_commands": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "command": {"$ref": "#/$defs/nonEmptyString"},
+                "output": {"type": "string"},
+                "regex_match": {"type": "string"},
+                "exit_code": {"type": "integer"}
+              },
+              "required": ["command"],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "bridge": {
+      "type": "object",
+      "properties": {
+        "interfaces": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "vlan_tags": {"type": "array", "items": {"type": "integer"}},
+              "pvid": {"type": "integer"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "vxlan": {
+          "description": "VNI -> {pvid}",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {"pvid": {"type": "integer"}},
+            "required": ["pvid"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["interfaces"],
+      "additionalProperties": false
+    },
+    "genericProtocol": {
+      "description": "Checks available for every routing daemon",
+      "type": "object",
+      "properties": {
+        "networks": {"$ref": "#/$defs/deviceToStringList"},
+        "injections": {"$ref": "#/$defs/deviceToStringList"}
+      }
+    },
+    "protocols": {
+      "type": "object",
+      "properties": {
+        "bgpd": {
+          "allOf": [{"$ref": "#/$defs/genericProtocol"}],
+          "properties": {
+            "networks": true,
+            "injections": true,
+            "neighbors": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ip": {"$ref": "#/$defs/nonEmptyString"},
+                    "asn": {"type": "integer"}
+                  },
+                  "required": ["ip", "asn"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "routes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "route": {"$ref": "#/$defs/nonEmptyString"},
+                    "aspath": {
+                      "description": "One AS path per expected alternative",
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {"type": ["integer", "string"]}
+                      }
+                    }
+                  },
+                  "required": ["route", "aspath"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "evpn_sessions": {"$ref": "#/$defs/deviceToStringList"},
+            "vtep_devices": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "vnis": {"type": "array", "items": {"type": ["integer", "string"]}},
+                  "ip": {"$ref": "#/$defs/nonEmptyString"}
+                },
+                "required": ["vnis", "ip"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "ospfd": {
+          "allOf": [{"$ref": "#/$defs/genericProtocol"}],
+          "properties": {
+            "networks": true,
+            "injections": true,
+            "neighbors": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "router_id": {"$ref": "#/$defs/nonEmptyString"},
+                    "state": {"type": "string"}
+                  },
+                  "required": ["router_id"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "routes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {"route": {"$ref": "#/$defs/nonEmptyString"}},
+                  "required": ["route"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "interfaces": {
+              "description": "device -> interface -> fields of `show ip ospf interface json` to compare",
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {"type": "object"}
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "sciond": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "object",
+              "additionalProperties": {"$ref": "#/$defs/nonEmptyString"}
+            },
+            "paths": {
+              "description": "device -> destination -> expected paths",
+              "type": "object",
+              "additionalProperties": {"$ref": "#/$defs/deviceToStringList"}
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": {
+        "allOf": [{"$ref": "#/$defs/genericProtocol"}],
+        "unevaluatedProperties": false
+      }
+    },
+    "applications": {
+      "type": "object",
+      "properties": {
+        "dns": {
+          "type": "object",
+          "properties": {
+            "authoritative": {
+              "description": "zone -> authoritative name server IPs",
+              "$ref": "#/$defs/deviceToStringList"
+            },
+            "local_ns": {
+              "description": "local name server IP -> devices using it",
+              "$ref": "#/$defs/deviceToStringList"
+            },
+            "records": {
+              "description": "record type -> name -> accepted values",
+              "type": "object",
+              "additionalProperties": {"$ref": "#/$defs/deviceToStringList"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "http": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {"$ref": "#/$defs/nonEmptyString"},
+                "method": {"type": "string"},
+                "status_code": {"type": "integer"},
+                "regex_body": {"type": "string"},
+                "body_contains": {"type": "string"}
+              },
+              "required": ["url"],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

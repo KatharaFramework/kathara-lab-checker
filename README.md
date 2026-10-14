@@ -76,6 +76,9 @@ lab_inline: |
 ```
 
 In the following you will find the possible values for the configuration file.
+Before running any test, the configuration file is validated against the JSON schema in
+[`src/kathara_lab_checker/schemas/configuration.json`](src/kathara_lab_checker/schemas/configuration.json): unknown keys
+or values of the wrong type are reported and the run is aborted.
 
 ```
 {
@@ -87,6 +90,10 @@ In the following you will find the possible values for the configuration file.
     "requiring_startup": [
     "<device_name>" # Check the presence of startup files for the specified device
     ], 
+    "requiring_folder": [
+    "<device_name>", # Check the presence of the folder for the specified device
+    "!<device_name>" # Check the absence of the folder for the specified device
+    ], # Any other folder in the lab (except `shared`) is reported as unexpected
     "ip_mapping": {
       "<device_name>": {
         "<interface_name>>": "<ip/netmask>" # Check that the ip/netmask is configured on the interface of the device

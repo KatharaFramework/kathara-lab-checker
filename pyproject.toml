@@ -30,7 +30,8 @@ dependencies = [
     "jc>=1.24.0",
     "openpyxl>=3.1.2",
     "tqdm>=4",
-    "coloredlogs~=15.0.1"
+    "coloredlogs~=15.0.1",
+    "jsonschema>=4.18"
 ]
 
 [project.scripts]
@@ -48,4 +49,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-schemas = ["*.json"]
+"kathara_lab_checker.schemas" = ["*.json"]

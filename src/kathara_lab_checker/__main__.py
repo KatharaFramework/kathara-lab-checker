@@ -14,9 +14,11 @@ import signal
 import tempfile
 import time
 from functools import partial
+from importlib import resources
 from typing import Optional, Any
 
 import coloredlogs
+import jsonschema
 import yaml
 from Kathara.exceptions import MachineCollisionDomainError
 from Kathara.manager.Kathara import Kathara
@@ -239,6 +241,19 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def validate_config(conf: Any, config_path: str) -> None:
+    """
+    Validates the correction file against the configuration JSON schema.
+    Raises a ValueError listing every violation found.
+    """
+    schema = json.loads(resources.files("kathara_lab_checker.schemas").joinpath("configuration.json").read_text())
+    validator = jsonschema.Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(conf), key=lambda e: list(map(str, e.absolute_path)))
+    if errors:
+        messages = [f"  - {'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}" for e in errors]
+        raise ValueError(f"Config file '{config_path}' is not valid:\n" + "\n".join(messages))
+
+
 def load_config_and_lab(config_path: str):
     """
     Loads a correction file as JSON or YAML. 
@@ -254,6 +269,8 @@ def load_config_and_lab(config_path: str):
             conf = yaml.safe_load(content)
         except yaml.YAMLError as e:
             raise ValueError(f"Config file '{config_path}' is neither valid JSON nor YAML:\n{e}")
+
+    validate_config(conf, config_path)
 
     inline = conf.get("lab_inline", "")
     if inline:
