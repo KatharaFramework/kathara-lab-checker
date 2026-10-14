@@ -37,7 +37,7 @@ class FolderExistenceCheck(AbstractCheck):
         for folder_name in sorted(self.lab.fs.listdir(".")):
             if folder_name == "shared" or folder_name in mentioned_folders or not self.lab.fs.isdir(folder_name):
                 continue
-            self.description = f"Check for unexpeted folders"
+            self.description = "Check for unexpected folders"
             results.append(FailedCheck(self.description, f"Unexpected {folder_name} folder found"))
         return results
 
