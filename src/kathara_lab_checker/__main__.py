@@ -45,12 +45,12 @@ def handler(signum, frame, live=False):
 
 
 def run_on_single_network_scenario(
-        lab_path: str,
-        configuration: dict[str, Any],
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        report_type: str = "csv",
+    lab_path: str,
+    configuration: dict[str, Any],
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    report_type: str = "csv",
 ):
     global CURRENT_LAB
     logger = logging.getLogger("kathara-lab-checker")
@@ -129,18 +129,19 @@ def run_on_single_network_scenario(
             write_result_to_excel(test_collector.tests[lab_name], lab_path)
         elif report_type == "csv":
             from .csv_utils import write_result_to_csv
+
             write_result_to_csv(test_collector.tests[lab_name], lab_path)
 
     return test_collector
 
 
 def run_on_multiple_network_scenarios(
-        labs_path: str,
-        configuration: dict,
-        no_cache: bool = False,
-        live: bool = False,
-        keep_open: bool = False,
-        report_type: str = "csv",
+    labs_path: str,
+    configuration: dict,
+    no_cache: bool = False,
+    live: bool = False,
+    keep_open: bool = False,
+    report_type: str = "csv",
 ):
     logger = logging.getLogger("kathara-lab-checker")
     labs_path = os.path.abspath(labs_path)
@@ -149,15 +150,15 @@ def run_on_multiple_network_scenarios(
 
     test_collector = TestCollector()
     for lab_name in tqdm(
-            sorted(
-                list(
-                    filter(
-                        lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
-                        os.listdir(labs_path),
-                    )
-                ),
-                key=str.casefold,
-            )
+        sorted(
+            list(
+                filter(
+                    lambda x: os.path.isdir(os.path.join(labs_path, x)) and x != ".DS_Store",
+                    os.listdir(labs_path),
+                )
+            ),
+            key=str.casefold,
+        )
     ):
 
         test_results = run_on_single_network_scenario(
@@ -173,6 +174,7 @@ def run_on_multiple_network_scenarios(
             write_final_results_to_excel(test_collector, labs_path)
         else:
             from .csv_utils import write_final_results_to_csv
+
             write_final_results_to_csv(test_collector, labs_path)
 
 
@@ -235,7 +237,7 @@ def parse_arguments():
         required=False,
         choices=["xlsx", "csv", "none"],
         default="csv",
-        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report"
+        help="Report format: 'csv' for a text-based report, 'xlsx' for an Excel spreadsheet, 'none' to skip report",
     )
 
     return parser.parse_args()
@@ -254,9 +256,78 @@ def validate_config(conf: Any, config_path: str) -> None:
         raise ValueError(f"Config file '{config_path}' is not valid:\n" + "\n".join(messages))
 
 
+# Configuration paths where device names appear ("*" matches any key).
+# Names prefixed with "!" assert absence, so they are not required to exist.
+DEVICES_AS_KEYS = [
+    ("test", "ip_mapping"),
+    ("test", "bridges"),
+    ("test", "daemons"),
+    ("test", "reachability"),
+    ("test", "kernel_routes"),
+    ("test", "sysctls"),
+    ("test", "custom_commands"),
+    ("test", "protocols", "*", "networks"),
+    ("test", "protocols", "*", "injections"),
+    ("test", "protocols", "*", "neighbors"),
+    ("test", "protocols", "*", "routes"),
+    ("test", "protocols", "bgpd", "evpn_sessions"),
+    ("test", "protocols", "bgpd", "vtep_devices"),
+    ("test", "protocols", "ospfd", "interfaces"),
+    ("test", "protocols", "sciond", "address"),
+    ("test", "protocols", "sciond", "paths"),
+    ("test", "applications", "http"),
+]
+DEVICES_AS_ITEMS = [
+    ("test", "requiring_startup"),
+    ("test", "requiring_folder"),
+    ("test", "ipv6_enabled"),
+    ("test", "applications", "dns", "local_ns", "*"),
+]
+
+
+def resolve_config_path(conf: dict, path: tuple) -> list[tuple[str, Any]]:
+    """
+    Returns the (slash-separated path, value) pairs reached by following `path` in `conf`, expanding "*" wildcards.
+    """
+    nodes = [("", conf)]
+    for key in path:
+        next_nodes = []
+        for node_path, node in nodes:
+            if not isinstance(node, dict):
+                continue
+            keys = node.keys() if key == "*" else [key] if key in node else []
+            next_nodes.extend((f"{node_path}/{k}" if node_path else str(k), node[k]) for k in keys)
+        nodes = next_nodes
+    return nodes
+
+
+def validate_devices(conf: dict, template_lab: Lab, config_path: str) -> None:
+    """
+    Checks that every device referenced in the correction file is defined in the lab structure.
+    Raises a ValueError listing every unknown device.
+    """
+    lab_devices = set(template_lab.machines.keys())
+    references = []
+    # Iterating a dict yields its keys, iterating a list its items
+    for path in DEVICES_AS_KEYS + DEVICES_AS_ITEMS:
+        for node_path, node in resolve_config_path(conf, path):
+            references.extend((node_path, device_name) for device_name in node)
+
+    messages = [
+        f"  - {node_path}: `{device_name}`"
+        for node_path, device_name in references
+        if not str(device_name).startswith("!") and str(device_name) not in lab_devices
+    ]
+    if messages:
+        raise ValueError(
+            f"Config file '{config_path}' references devices not defined in the lab structure "
+            f"(defined: {', '.join(sorted(lab_devices))}):\n" + "\n".join(messages)
+        )
+
+
 def load_config_and_lab(config_path: str):
     """
-    Loads a correction file as JSON or YAML. 
+    Loads a correction file as JSON or YAML.
     If 'lab_inline' is set, writes it to a temp file and uses that as 'structure'.
     Returns (conf, structure_file).
     """
@@ -312,16 +383,13 @@ def main():
         os.path.dirname(structure),
         conf_name=os.path.basename(structure),
     )
+    validate_devices(conf, template_lab, args.config)
 
     conf["template_lab"] = template_lab
     if args.lab:
-        run_on_single_network_scenario(
-            args.lab, conf, args.no_cache, args.live, args.keep_open, args.report_type
-        )
+        run_on_single_network_scenario(args.lab, conf, args.no_cache, args.live, args.keep_open, args.report_type)
     elif args.labs:
-        run_on_multiple_network_scenarios(
-            args.labs, conf, args.no_cache, args.live, args.keep_open, args.report_type
-        )
+        run_on_multiple_network_scenarios(args.labs, conf, args.no_cache, args.live, args.keep_open, args.report_type)
 
 
 if __name__ == "__main__":
