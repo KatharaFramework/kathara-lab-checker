@@ -13,12 +13,19 @@ class StartupExistenceCheck(AbstractCheck):
         super().__init__(lab, description=description, priority=20)
 
     def check(self, device_name: str) -> CheckResult:
-        self.description = f"Check existence of `{device_name}.startup` file"
+        if device_name.startswith("!"):
+            device_name = device_name[1:]
+            self.description = f"Check absence of `{device_name}.startup` file"
+            invert = True
+        else:
+            self.description = f"Check existence of `{device_name}.startup` file"
+            invert = False
 
-        if self.lab.fs.exists(device_name + ".startup"):
+        if self.lab.fs.exists(device_name + ".startup") ^ invert:
             return SuccessfulCheck(self.description)
         else:
-            return FailedCheck(self.description, f"{device_name}.startup file not found")
+            reason = f"{device_name}.startup file {'found' if invert else 'not found'}"
+            return FailedCheck(self.description, reason)
 
     def run(self, machines_to_check: list[str]) -> list[CheckResult]:
         results = []

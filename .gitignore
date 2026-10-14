@@ -109,3 +109,6 @@ Dockerfile~
 scripts/pip-package/dist/*
 *.csv
 *.xslx
+
+# Ugly .DS_Store macOS file
+.DS_Store
