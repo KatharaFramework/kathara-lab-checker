@@ -75,7 +75,7 @@
                   "$ref": "#/$defs/stringList"
                 },
                 "protocol": {
-                  "description": "Protocol that installed the route, as reported by `ip route` (e.g., kernel, static, ospf, bgp)",
+                  "description": "Protocol that installed the route, as reported by `ip route` (e.g., static, kernel, ospf, bgp)",
                   "$ref": "#/$defs/nonEmptyString"
                 }
               },

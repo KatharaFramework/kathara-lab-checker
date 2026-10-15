@@ -112,7 +112,7 @@ or values of the wrong type are reported and the run is aborted.
         "<route>": {}, # Check the presence of the route in the data-plane of the device
         "<route>": {
           "nexthops": [<iface_name_1>, <iface_name_2>, <next_hop_1>], # (Optional) Check that the nexthops are set on the correct interfaces
-          "protocol": "<protocol>" # (Optional) Check the protocol that installed the route (e.g., kernel, static, ospf, bgp)
+          "protocol": "<protocol>" # (Optional) Check the protocol that installed the route (e.g., static, kernel, ospf, bgp)
         }
       }
     },

@@ -174,7 +174,8 @@ class KernelRouteCheck(AbstractCheck):
                     ]
                 else:
                     raise Exception("Strange nexthop: ", current_nexthop)
-            routes[dst] = {"nexthops": set(nexthops), "protocol": route.get("protocol")}
+            # iproute2 omits the protocol when it is "boot" (e.g., routes added with `ip route add`), treat them as static
+            routes[dst] = {"nexthops": set(nexthops), "protocol": route.get("protocol", "static")}
         return routes
 
     def run_from_configuration(self, configuration: dict) -> list[CheckResult]:
