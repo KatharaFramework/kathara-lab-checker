@@ -1,6 +1,6 @@
 import json
 
-from Kathara.exceptions import MachineNotRunningError
+from Kathara.exceptions import MachineNotRunningError, MachineBinaryError
 from Kathara.model.Lab import Lab
 
 from ....foundation.checks.AbstractCheck import AbstractCheck
@@ -23,10 +23,12 @@ class OSPFInterfaceCheck(AbstractCheck):
                 machine_name=device_name,
                 command="vtysh -e 'show ip ospf interface json'",
                 lab_hash=self.lab.hash,
-                stream=False
+                stream=False,
             )
         except MachineNotRunningError as e:
             return [FailedCheck(base_desc, str(e))]
+        except MachineBinaryError as e:
+            return [FailedCheck(base_desc, f"Error during OSPF interface check test on {device_name}: {e}")]
 
         output = stdout.decode("utf-8") if stdout else ""
         if stderr or exit_code != 0:
@@ -65,5 +67,5 @@ class OSPFInterfaceCheck(AbstractCheck):
         results = []
         if key_exists(["test", "protocols", "ospfd", "interfaces"], configuration):
             self.logger.info("Checking OSPF interface parameters...")
-            results.extend(self.run(configuration["test"]["protocols"]['ospfd']['interfaces']))
+            results.extend(self.run(configuration["test"]["protocols"]["ospfd"]["interfaces"]))
         return results
