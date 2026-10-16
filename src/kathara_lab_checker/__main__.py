@@ -82,7 +82,7 @@ def run_on_single_network_scenario(
         check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
-    except MachineCollisionDomainError as e:
+    except (MachineCollisionDomainError, SyntaxError, ValueError) as e:
         logger.warning(f"{str(e)} Skipping directory")
         check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
