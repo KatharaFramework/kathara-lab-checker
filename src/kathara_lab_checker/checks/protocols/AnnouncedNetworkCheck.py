@@ -6,7 +6,7 @@ from ...foundation.checks.AbstractCheck import AbstractCheck
 from ...foundation.model.CheckResult import CheckResult
 from ...model.FailedCheck import FailedCheck
 from ...model.SuccessfulCheck import SuccessfulCheck
-from ...utils import get_output, key_exists
+from ...utils import get_output, get_router_config_section, key_exists
 
 
 class AnnouncedNetworkCheck(AbstractCheck):
@@ -19,12 +19,13 @@ class AnnouncedNetworkCheck(AbstractCheck):
 
         try:
             exec_output_gen = self.kathara_manager.exec(
-                machine_name=device_name, command=f"vtysh -e 'show running-config {protocol}'", lab_hash=self.lab.hash
+                machine_name=device_name, command="vtysh -e 'show running-config'", lab_hash=self.lab.hash
             )
         except Exception as e:
             return FailedCheck(self.description, str(e))
 
-        output = list(filter(lambda x: "network" in x, get_output(exec_output_gen).split("\n")))
+        section = get_router_config_section(get_output(exec_output_gen), protocol)
+        output = list(filter(lambda x: "network" in x, section))
         for line in output:
             if re.search(rf"\s*network\s*{network}", line):
                 return SuccessfulCheck(self.description)

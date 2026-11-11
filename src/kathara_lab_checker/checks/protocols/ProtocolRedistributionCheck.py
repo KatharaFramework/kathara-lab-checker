@@ -6,7 +6,7 @@ from ...foundation.checks.AbstractCheck import AbstractCheck
 from ...foundation.model.CheckResult import CheckResult
 from ...model.FailedCheck import FailedCheck
 from ...model.SuccessfulCheck import SuccessfulCheck
-from ...utils import get_output, key_exists
+from ...utils import get_output, get_router_config_section, key_exists
 
 
 class ProtocolRedistributionCheck(AbstractCheck):
@@ -27,13 +27,13 @@ class ProtocolRedistributionCheck(AbstractCheck):
         try:
             exec_output_gen = self.kathara_manager.exec(
                 machine_name=device_name,
-                command=f"vtysh -e 'show running-config {protocol_to_check}'",
+                command="vtysh -e 'show running-config'",
                 lab_hash=self.lab.hash,
             )
         except Exception as e:
             return FailedCheck(self.description, str(e))
 
-        output = get_output(exec_output_gen).split("\n")
+        output = get_router_config_section(get_output(exec_output_gen), protocol_to_check)
         found = False
         for line in output:
             if re.search(rf"^\s*redistribute\s*{injected_protocol}", line):

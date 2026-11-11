@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 
@@ -28,6 +29,30 @@ def get_output(exec_output):
     except StopIteration:
         pass
     return output
+
+
+def get_router_config_section(running_config: str, daemon: str) -> list[str]:
+    """
+    Return the lines of the `router <protocol>` block(s) for the given FRR daemon (e.g. ripd -> `router rip`).
+
+    The full `show running-config` must be used: since FRR 9.x, some daemons (e.g. ripd, ripngd, staticd) are
+    managed by mgmtd, so `show running-config <daemon>` no longer contains their configuration.
+    """
+    protocol = daemon[:-1] if daemon.endswith("d") else daemon
+    header = re.compile(rf"^router\s+{re.escape(protocol)}(\s|$)")
+
+    section = []
+    in_block = False
+    for line in running_config.splitlines():
+        if header.match(line):
+            in_block = True
+            continue
+        if in_block:
+            if line and not line[0].isspace():
+                in_block = False
+                continue
+            section.append(line)
+    return section
 
 
 def find_device_name_from_ip(ip_mapping: dict[str, dict[str, str]], ip_search: str) -> Optional[str]:
