@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import re
 
 from Kathara.exceptions import MachineNotRunningError
 from Kathara.model.Lab import Lab
@@ -55,8 +56,31 @@ class InterfaceIPCheck(AbstractCheck):
                 for interface_number, ip in iface_to_ips.items():
                     check_result = self.check(device_name, interface_number, ip, dumped_iface)
                     results.append(check_result)
+                results.extend(self.check_unexpected_interfaces(device_name, iface_to_ips, dumped_iface))
             except MachineNotRunningError:
                 self.logger.warning(f"`{device_name}` is not running. Skipping checks...")
+        return results
+
+    def check_unexpected_interfaces(self, device_name: str, iface_to_ips: dict, dumped_iface: dict) -> list[CheckResult]:
+        expected_ifaces = {
+            f"eth{iface}" if str(iface).isnumeric() else str(iface) for iface in iface_to_ips.keys()
+        }
+
+        results = []
+        for iface_info in dumped_iface:
+            interface_name = iface_info["ifname"]
+            if not re.fullmatch(r"eth\d+", interface_name) or interface_name in expected_ifaces:
+                continue
+
+            self.description = f"Checking for unexpected interfaces on {device_name}"
+            assigned_ips = [
+                f"{addr_info['local']}/{addr_info['prefixlen']}" for addr_info in iface_info.get("addr_info", [])
+            ]
+            reason = f"Unexpected interface `{interface_name}` found on `{device_name}`"
+            if assigned_ips:
+                reason += f" with IP addresses: {assigned_ips}"
+            results.append(FailedCheck(self.description, reason))
+
         return results
 
     def get_interfaces_addresses(self, device_name: str) -> dict:
