@@ -20,7 +20,7 @@ from typing import Optional, Any
 import coloredlogs
 import jsonschema
 import yaml
-from Kathara.exceptions import MachineCollisionDomainError
+from Kathara.exceptions import MachineCollisionDomainError, NonSequentialMachineInterfaceError
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 from Kathara.parser.netkit.LabParser import LabParser
@@ -82,7 +82,7 @@ def run_on_single_network_scenario(
         check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
         return test_collector
-    except (MachineCollisionDomainError, SyntaxError, ValueError) as e:
+    except (MachineCollisionDomainError, NonSequentialMachineInterfaceError, SyntaxError, ValueError) as e:
         logger.warning(f"{str(e)} Skipping directory")
         check_results = [FailedCheck("The lab.conf cannot be parsed", str(e))]
         test_collector.add_check_results(lab_name, check_results)
