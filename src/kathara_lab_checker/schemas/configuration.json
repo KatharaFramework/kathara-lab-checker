@@ -138,7 +138,11 @@
       "type": "object",
       "properties": {
         "networks": {"$ref": "#/$defs/deviceToStringList"},
-        "injections": {"$ref": "#/$defs/deviceToStringList"}
+        "injections": {"$ref": "#/$defs/deviceToStringList"},
+        "commands": {
+          "description": "device -> commands expected in the `router <protocol>` section. A leading `!` asserts absence.",
+          "$ref": "#/$defs/deviceToStringList"
+        }
       }
     },
     "protocols": {
@@ -149,6 +153,7 @@
           "properties": {
             "networks": true,
             "injections": true,
+            "commands": true,
             "neighbors": {
               "type": "object",
               "additionalProperties": {
@@ -207,6 +212,7 @@
           "properties": {
             "networks": true,
             "injections": true,
+            "commands": true,
             "neighbors": {
               "type": "object",
               "additionalProperties": {

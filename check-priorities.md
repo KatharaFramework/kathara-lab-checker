@@ -42,6 +42,7 @@ The checks are categorized into specific ranges, according to the following tabl
 | SCIONPathsCheck             | 1100           |  
 | AnnouncedNetworkCheck       | 1110           |  
 | ProtocolRedistributionCheck | 1120           |  
+| ProtocolCommandCheck        | 1130           |  
 | KernelRouteCheck            | 2000           |  # Routing Table Checks
 | DNSAuthorityCheck           | 3010           |  # Application Checks
 | LocalNSCheck                | 3020           |  

@@ -138,6 +138,12 @@ or values of the wrong type are reported and the run is aborted.
             "<protocol_name>", # Check that the protocol is injected in BGP by the device
             "!<protocol_name>" # Check that the protocol is not injected in BGP by the device
           ],
+        },
+        "commands": { # Check commands in the `router <protocol>` section of the running config (e.g., "no bgp network import-check")
+          "<device_name>": [
+            "<command>", # Check that the command is configured (indentation and extra spaces are ignored)
+            "!<command>" # Check that the command is not configured
+          ],
         }
       }
     },

@@ -268,6 +268,7 @@ DEVICES_AS_KEYS = [
     ("test", "custom_commands"),
     ("test", "protocols", "*", "networks"),
     ("test", "protocols", "*", "injections"),
+    ("test", "protocols", "*", "commands"),
     ("test", "protocols", "*", "neighbors"),
     ("test", "protocols", "*", "routes"),
     ("test", "protocols", "bgpd", "evpn_sessions"),
